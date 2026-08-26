@@ -34,12 +34,14 @@ export function ResponsivePseudoScatterPlot() {
     const yScale = scaleLinear().domain([0, ORIGINAL_HEIGHT]).range([0, dimensions.height]);
 
     select(svg)
-      .selectAll('circle')
+      .selectAll('image')
       .data(data)
-      .join('circle')
-      .attr('cx', (d: DataPoint) => xScale(d.x))
-      .attr('cy', (d: DataPoint) => yScale(d.y))
-      .attr('r', RADIUS);
+      .join('image')
+      .attr('href', '/data-visualization-student-starter/pochacco.png')
+      .attr('x', (d: DataPoint) => xScale(d.x) - RADIUS)
+      .attr('y', (d: DataPoint) => yScale(d.y) - RADIUS)
+      .attr('width', RADIUS * 2)
+      .attr('height', RADIUS * 2);
   }, [dimensions]);
 
   return (
