@@ -42,7 +42,7 @@ export function ResponsivePseudoScatterPlot() {
       .attr('y', (d: DataPoint) => yScale(d.y) - RADIUS)
       .attr('width', RADIUS * 2)
       .attr('height', RADIUS * 2)
-      .attr('class', 'pochacco');
+      .attr('class', 'pochacco'); // hover animation from CSS file
   }, [dimensions]);
 
   return (
