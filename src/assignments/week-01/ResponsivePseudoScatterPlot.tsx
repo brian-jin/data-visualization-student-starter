@@ -41,7 +41,8 @@ export function ResponsivePseudoScatterPlot() {
       .attr('x', (d: DataPoint) => xScale(d.x) - RADIUS)
       .attr('y', (d: DataPoint) => yScale(d.y) - RADIUS)
       .attr('width', RADIUS * 2)
-      .attr('height', RADIUS * 2);
+      .attr('height', RADIUS * 2)
+      .attr('class', 'pochacco');
   }, [dimensions]);
 
   return (
