@@ -3,7 +3,6 @@ import { select } from "d3-selection";
 import { csvParse } from "d3-dsv";
 import { useDimensions } from "../week-01/useDimensions";
 import { geoPath, geoMercator } from "d3-geo";
-import type { AnyMxRecord } from "node:dns";
 
 interface Summary {
     rows: number;
@@ -23,6 +22,19 @@ interface RowSummary {
     GRADE: string;
     GRADE_DATE: string;
     RECORD_DATE: string;
+}
+
+interface BoroughFeature {
+    type: "Feature";
+    properties: {
+        BoroName: string;
+    };
+    geometry: any;
+}
+
+interface BoroughGeoJSON {
+    type: "FeatureCollection";
+    features: BoroughFeature[];
 }
 
 const DATA_URL = `${import.meta.env.BASE_URL}data/Restaurant_Grades_20260902.csv`;
@@ -121,7 +133,7 @@ export function SummarizeDataset() {
 
     fetch(BOROUGH_URL)
         .then((response) => response.json())
-        .then((geojson) => {
+        .then((geojson: BoroughGeoJSON) => {
         const boroughCounts = new Map<string, Set<string>>();
 
         data.forEach((row) => {
@@ -167,7 +179,7 @@ export function SummarizeDataset() {
             .selectAll("path")
             .data(geojson.features)
             .join("path")
-            .attr("d", path)
+            .attr("d", (d: BoroughFeature) => path(d))
             .attr("fill", (d) => colorScale(d.properties.BoroName))
             .attr("stroke", "#3A5A40")
             .attr("stroke-width", 1);
@@ -177,16 +189,16 @@ export function SummarizeDataset() {
             .selectAll("text")
             .data(geojson.features)
             .join("text")
-            .attr("transform", (d) => {
-            const centroid = path.centroid(d);
-            return `translate(${centroid[0]}, ${centroid[1]})`;
+            .attr("transform", (d: BoroughFeature) => {
+                const centroid = path.centroid(d);
+                return `translate(${centroid[0]}, ${centroid[1]})`;
             })
             .attr("text-anchor", "middle")
             .attr("font-size", 12)
             .attr("font-weight", "bold")
             .attr("fill", "#3A5A40")
             .selectAll("tspan")
-            .data((d:AnyMxRecord) => [
+            .data((d: BoroughFeature) => [
                 d.properties.BoroName,
                 `${boroughCounts.get(d.properties.BoroName)?.size || 0} restaurants`,
             ])
