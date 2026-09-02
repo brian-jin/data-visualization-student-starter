@@ -3,6 +3,7 @@ import { select } from "d3-selection";
 import { csvParse } from "d3-dsv";
 import { useDimensions } from "../week-01/useDimensions";
 import { geoPath, geoMercator } from "d3-geo";
+import type { AnyMxRecord } from "node:dns";
 
 interface Summary {
     rows: number;
@@ -185,7 +186,7 @@ export function SummarizeDataset() {
             .attr("font-weight", "bold")
             .attr("fill", "#3A5A40")
             .selectAll("tspan")
-            .data((d) => [
+            .data((d:AnyMxRecord) => [
                 d.properties.BoroName,
                 `${boroughCounts.get(d.properties.BoroName)?.size || 0} restaurants`,
             ])
