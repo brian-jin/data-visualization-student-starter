@@ -37,8 +37,8 @@ interface BoroughGeoJSON {
     features: BoroughFeature[];
 }
 
-const DATA_URL = `${import.meta.env.BASE_URL}data/Restaurant_Grades_20260902.csv`;
-const BOROUGH_URL = `${import.meta.env.BASE_URL}data/borough.geo.json`;
+const DATA_URL = `${import.meta.env.BASE_URL}data/week2/Restaurant_Grades_20260902.csv`;
+const BOROUGH_URL = `${import.meta.env.BASE_URL}data/week2/borough.geo.json`;
 const FONT_SIZE = 28;
 const LINE_HEIGHT = FONT_SIZE * 1.2;
 
