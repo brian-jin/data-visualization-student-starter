@@ -21,7 +21,7 @@ NYC Tree Census
 NYC Parks and Open Data
 NOAA Weather Data
 ### Rough Sketches
-![alt text](week2-images/image.png)
+![alt text](image.png)
 
 ## Question 2: How is AI changing the skills employers want?
 ### Idea
@@ -36,7 +36,7 @@ NYC Jobs
 U.S. Bureau of Labor Statistics
 NYC Employment Data
 ### Rough Sketches
-![alt text](week2-images/image-1.png)
+![alt text](image-1.png)
 
 ## Question 3: Are NYC neighborhoods becoming more commercially similar over time? Which neighborhoods are most impacted? Which business are disappearing or being replaced? 
 ### Idea
@@ -54,4 +54,4 @@ Property values
 Foot traffic/tourism
 New construction, gentrification
 ### Rough Sketches
-![alt text](week2-images/image-2.png)
+![alt text](image-2.png)
