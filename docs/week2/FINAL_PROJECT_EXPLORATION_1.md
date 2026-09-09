@@ -55,3 +55,15 @@ Foot traffic/tourism
 New construction, gentrification
 ### Rough Sketches
 ![alt text](image-2.png)
+
+
+# Task Analysis
+
+## Question 1: How is a changing/subtropical climate affecting different groups of New Yorkers?
+I want to understand how changes in temperature, precipitation, and extreme weather are affecting neighborhoods and demographic groups in NYC. The visualization should ideally help users identify neighborhoods with the most climate-related changes, compare impacts across different socioeconomic factors. I want the visual to allow for comparison between 2 or more neighborhoods for more interactive eexploration.
+
+## Question 2: How is AI changing the skills employers want?
+I want to identify how skills requested by employers are evolving as AI is more heavily adopted. This may be through sifting through job portals and listings. Along with O*NET data on skillsets, the visualization should allow users to explore skill demands across industries and occupations during different time periods. This should help users see what occupations are impacted, how skill requirements are changing, and how they may want to respond to the changes.
+
+## Question 3: Are NYC neighborhoods becoming more commercially similar over time? Which neighborhoods are most impacted? Which business are disappearing or being replaced? 
+I want to explore how NYC neighborhoods are becoming more commercially similar over time and identify neighborhoods that are experiencing the most changes. The visualization will help users compare businesses across neighborhoods and time periods by identifying patterns of homogenization or diversification. This may be done by assigning scores based on what stores are in each neighborhood. Additionally, I will explore what types of businesses are opening, closing, or being replaced. Other areas to touch upon are if changes are in particular neighborhoods or periods of development, and where independent businesses face the most pressure.
