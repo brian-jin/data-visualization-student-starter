@@ -18,7 +18,7 @@ interface ViolationCount {
 const DATA_URL = `${import.meta.env.BASE_URL}data/week2/Restaurant_Grades_20260902.csv`;
 
 const MARGIN = {
-  top: 200,
+  top: 50,
   right: 60,
   bottom: 50,
   left: 280,
@@ -34,7 +34,6 @@ export function FirstVisual() {
 
   const [data, setData] = useState<ViolationRow[] | null>(null);
 
-  // Load and parse dataset
   useEffect(() => {
     let cancelled = false;
 
@@ -93,7 +92,7 @@ export function FirstVisual() {
       .slice(0, 10);
   }, [data]);
 
-  // Truncate all labels after a fixed number of characters
+  // Truncate labels after a fixed number of characters
   const shortenViolation = (
     violation: string,
     maxLength = 45,
