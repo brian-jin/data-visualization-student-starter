@@ -3,6 +3,7 @@ import { ResponsivePseudoScatterPlot } from './week-01/ResponsivePseudoScatterPl
 import { SummarizeDataset } from './week-02/SummarizeDataset';
 import { FirstVisual } from './week-03/FirstVisual';
 import { SecondPass } from './week-04/SecondPass';
+import { NewInteraction } from './week-05/NewInteraction';
 
 export interface Assignment {
   id: string;
@@ -30,6 +31,11 @@ export const assignments: Assignment[] = [
     id: '4',
     name: 'Week 4',
     component: SecondPass,
+  },
+  {
+    id: '5',
+    name: 'Week 5',
+    component: NewInteraction,
   }
 ];
 
