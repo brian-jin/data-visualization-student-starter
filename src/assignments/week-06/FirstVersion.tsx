@@ -335,7 +335,7 @@ export function FirstVersion() {
   return (
     <div className="sm">
       <header className="sm-header">
-        <h2>Mapping the "Same-ification" of NYC, From Blank to 7th Street</h2>
+        <h2>Mapping the "Same-ification" of NYC, From Blank Street to 7th Street</h2>
         <p className="sm-lede">
           Are NYC neighborhoods truly becoming more commercially homogeneous over time, and which neighborhoods are most impacted by changes such as independent shop replacements and gentrification?
         </p>

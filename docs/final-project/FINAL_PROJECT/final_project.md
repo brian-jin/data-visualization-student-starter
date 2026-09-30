@@ -1,4 +1,4 @@
-# From Blank to 7th Street: Mapping the "Same-ification" of NYC Neighborhoods
+# Mapping the "Same-ification" of NYC Neighborhoods, From Blank Street to 7th Street
 
 **Are NYC neighborhoods truly becoming more commercially homogeneous over time, and which neighborhoods are most impacted by changes such as independent shop replacements and gentrification?**
 
@@ -82,4 +82,4 @@ Limitations Discovered:
 - Coordinates are approximate, not official storefronts. Additionally, restaurants are sorted to the closest neighborhood based on where it lies in the Geo JSON boundary, which may make results different from map to map.
 - Chains are calculated based on locations in NYC, not world-wide, which could impact validity.
 
-[Link to Page]()
+[Link to Page](https://brian-jin.github.io/data-visualization-student-starter/?example=6)
