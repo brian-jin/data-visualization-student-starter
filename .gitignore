@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python Scripts & Data
+public/data/raw/
+.venv/
+__pycache__/
