@@ -4,6 +4,7 @@ import { SummarizeDataset } from './week-02/SummarizeDataset';
 import { FirstVisual } from './week-03/FirstVisual';
 import { SecondPass } from './week-04/SecondPass';
 import { NewInteraction } from './week-05/NewInteraction';
+import { FirstVersion } from './week-06/FirstVersion';
 
 export interface Assignment {
   id: string;
@@ -36,6 +37,11 @@ export const assignments: Assignment[] = [
     id: '5',
     name: 'Week 5',
     component: NewInteraction,
+  },
+  {
+    id: '6',
+    name: 'Week 6',
+    component: FirstVersion,
   }
 ];
 
