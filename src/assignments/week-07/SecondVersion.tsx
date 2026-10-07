@@ -473,10 +473,10 @@ export function SecondVersion() {
 
               <div className="sm-seg" role="group" aria-label="Map view">
                 <button type="button" aria-pressed={showHex} onClick={() => setView('hex')}>
-                  Hexagons
+                  Hexabins
                 </button>
                 <button type="button" aria-pressed={!showHex} onClick={() => setView('nbhd')}>
-                  Neighborhoods
+                  Choropleth
                 </button>
               </div>
             </div>
