@@ -883,9 +883,9 @@ export function IterateProject() {
   return (
     <div className="sm">
       <header className="sm-header">
-        <h2>Where Do Chains Cluster in NYC? From Blank Street to 7th Street</h2>
+        <h2>Mapping the "Same-ification" of NYC, From Blank Street to 7th Street</h2>
         <p className="sm-lede">
-          A snapshot of NYC restaurants today: in each neighborhood, what share belong to a chain? This map shows where chains cluster now, not how neighborhoods have changed over time.
+          Are NYC neighborhoods truly becoming more commercially homogeneous, and which neighborhoods are most impacted by changes such as independent shop replacements and gentrification?
         </p>
       </header>
 
