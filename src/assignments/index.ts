@@ -7,6 +7,7 @@ import { NewInteraction } from './week-05/NewInteraction';
 import { FirstVersion } from './week-06/FirstVersion';
 import { SecondVersion } from './week-07/SecondVersion';
 import { IterateProject } from './week-08/IterateProject';
+import { Week10Interaction } from './week-10/Week10Interaction';
 
 export interface Assignment {
   id: string;
@@ -54,6 +55,11 @@ export const assignments: Assignment[] = [
     id: '8',
     name: 'Week 8',
     component: IterateProject,
+  },
+  {
+    id: '9',
+    name: 'Week 10',
+    component: Week10Interaction,
   }
 ];
 
