@@ -37,6 +37,7 @@ interface Brand {
   recent: number; // locations whose first inspection on record is within the past year (rough "new opening" signal)
   nbhds: Record<string, number>; // locations per neighborhood id
   pts: [number, number][]; // [lon, lat] of each location
+  info: { name: string; cuisine: string; nbhd: string }[]; // same order as pts, for the hover card
 }
 // Group restaurants.csv rows by brand. "recent" counts locations whose first inspection on record is within a year of
 // the newest one, plus those not inspected yet: a rough stand-in for recent openings.
@@ -55,12 +56,13 @@ function groupBrands(rows: readonly Record<string, string | undefined>[]): Brand
     if (!TIERS.some((t) => t.key === tier) || !Number.isFinite(lon) || !Number.isFinite(lat)) continue;
     let b = byName.get(name);
     if (!b) {
-      b = { id: name, name, tier, total: 0, recent: 0, nbhds: {}, pts: [] };
+      b = { id: name, name, tier, total: 0, recent: 0, nbhds: {}, pts: [], info: [] };
       byName.set(name, b);
     }
     b.total++;
     b.nbhds[r.nbhd_id] = (b.nbhds[r.nbhd_id] ?? 0) + 1;
     b.pts.push([lon, lat]);
+    b.info.push({ name: titleCase(r.name ?? '') || 'Unnamed', cuisine: r.cuisine?.trim() || 'Unknown', nbhd: r.nbhd_id });
     if (time(r.first_seen) >= cutoff || r.not_yet_inspected === 'True') b.recent++;
   }
   return [...byName.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
@@ -73,6 +75,8 @@ interface Pin {
   cuisine: string;
   lon: number;
   lat: number;
+  nbhd?: string; // only set when the card comes from a selected restaurant's dots
+  color?: string; // dot color of the selected restaurant this pin belongs to
 }
 type Tip = { text: string; x: number; y: number; pins?: Pin[]; more?: number; flipX?: boolean; flipY?: boolean };
 
@@ -94,6 +98,17 @@ function toPins(rows: readonly Record<string, string | undefined>[]): Pin[] {
   return out;
 }
 type Project = (c: [number, number]) => [number, number] | null;
+// Sets the --brand color that a restaurant's dots and swatches read from
+const brandVar = (color: string) => ({ '--brand': color }) as React.CSSProperties;
+
+// Linked highlighting: spread onto any row that stands for a neighborhood and the map outlines it while you hover or focus the row
+interface LinkProps {
+  onPointerEnter: (e: React.PointerEvent) => void;
+  onPointerLeave: () => void;
+  onFocus: (e: React.FocusEvent<HTMLElement>) => void;
+  onBlur: () => void;
+}
+type Link = (id: string) => LinkProps;
 
 const DATA_URL = `${import.meta.env.BASE_URL}data/nbhd.geo.json`;
 const SIZE = 720;
@@ -101,6 +116,9 @@ const MIN_RESTAURANTS = 20; // Used for the side panel and to set the color rang
 const RANK_N = 5; // How many neighborhoods each ranking list shows
 const MAX_RESULTS = 8; // Most search results listed at once
 const MAX_BRAND_RESULTS = 6; // Most restaurant results listed at once
+const MAX_BRANDS = 3; // Most restaurants shown on the map at once
+// One dot color per restaurant: all distinct from the teal ramp, the purple compare outline and each other
+const BRAND_COLORS = ['#B5365A', '#2563C9', '#E8890C'];
 const PIN_COLOR = '#FFF6DD'; // ivory: light enough to read on the dark end of the ramp
 const PIN_RING = '#2B3A46'; // dark ring (the page's ink color) keeps ivory pins visible on the pale end
 const HOVER_ZOOM = 4; // pins answer hover once the map is zoomed in at least this far
@@ -110,6 +128,10 @@ const BRAND_MIN_SPAN = SIZE * 0.08; // A single location still zooms to about th
 const RESTAURANTS_URL = `${import.meta.env.BASE_URL}data/restaurants.csv`;
 const MAX_ZOOM = 100;
 const ZOOM_FILL = 0.8; // Clicked neighborhood fills this fraction of the map (1 = edge to edge)
+const HIST_BINS = 16; // Bars in the legend histogram
+const KEY_STEP = 0.01; // Arrow keys move a legend handle by one percentage point (Shift: five)
+const MAX_RANGE_LIST = 10; // Neighborhoods listed in the panel while the legend range is active
+const SHARED_ROWS = 10; // Chains shown in the compare view's "Chains in common" chart
 
 // Color ramp: low chain share -> high chain share. source: https://coolors.co/palette/c9e4ca-87bba2-55828b-3b6064-364958
 const RAMP = ['#C9E4CA', '#87BBA2', '#55828B', '#3B6064', '#364958'];
@@ -276,8 +298,111 @@ function NeighborhoodView({ p, city, rank, ranked }: { p: NbhdProps; city: City;
   );
 }
 
+// Which chain brands do two neighborhoods have in common? "Chain" here means any name with 2+ locations citywide.
+// Top: how many chain brands are only in A, in both, only in B. Below: the biggest chains as a mirrored bar chart (A left, B right).
+function SharedChains({ a, b, brands }: { a: NbhdProps; b: NbhdProps; brands: Brand[] | null }) {
+  const shared = useMemo(() => {
+    if (!brands) return null;
+    let onlyA = 0;
+    let both = 0;
+    let onlyB = 0;
+    const rows: { brand: Brand; na: number; nb: number }[] = [];
+    for (const br of brands) {
+      if (br.tier === 'independent') continue;
+      const na = br.nbhds[a.id] ?? 0;
+      const nb = br.nbhds[b.id] ?? 0;
+      if (!na && !nb) continue;
+      if (na && nb) both++;
+      else if (na) onlyA++;
+      else onlyB++;
+      rows.push({ brand: br, na, nb });
+    }
+    // Biggest first by combined locations (the "total" column); ties put chains found in both ahead of the rest, then A to Z
+    const inBoth = (r: { na: number; nb: number }) => (r.na && r.nb ? 1 : 0);
+    rows.sort(
+      (x, y) => y.na + y.nb - (x.na + x.nb) || inBoth(y) - inBoth(x) || x.brand.name.localeCompare(y.brand.name),
+    );
+    const top = rows.slice(0, SHARED_ROWS);
+    // One scale for both sides so bar lengths can be compared across the middle
+    const max = Math.max(1, ...top.map((r) => Math.max(r.na, r.nb)));
+    return { onlyA, both, onlyB, union: onlyA + both + onlyB, top, max };
+  }, [brands, a.id, b.id]);
+
+  if (!shared) return <p className="sm-hint sm-prompt">Loading restaurant names…</p>;
+  const { onlyA, both, onlyB, union, top, max } = shared;
+  if (!union) {
+    return <p className="sm-note">Neither neighborhood has any chain brands (names with 2+ locations citywide).</p>;
+  }
+  return (
+    <div className="sm-shared">
+      <h4>Chains in common</h4>
+      <p className="sm-note">
+        <b className="sm-em">{both}</b> of the {union} chain brands found in these two neighborhoods appear in both (
+        <b className="sm-em">{pct(both / union)}</b>). A chain brand is any name with 2+ locations citywide.
+      </p>
+      <div className="sm-venn" role="img" aria-label={`Only A: ${onlyA}, in both: ${both}, only B: ${onlyB} chain brands`}>
+        {onlyA > 0 && <span className="sm-venn-a" style={{ flexGrow: onlyA }} />}
+        {both > 0 && <span className="sm-venn-both" style={{ flexGrow: both }} />}
+        {onlyB > 0 && <span className="sm-venn-b" style={{ flexGrow: onlyB }} />}
+      </div>
+      <div className="sm-venn-key">
+        <span>
+          <i className="sm-swatch sm-venn-a" /> Only A: {onlyA}
+        </span>
+        <span>
+          <i className="sm-swatch sm-venn-both" /> Both: {both}
+        </span>
+        <span>
+          <i className="sm-swatch sm-venn-b" /> Only B: {onlyB}
+        </span>
+      </div>
+
+      <h4>Biggest chains, A and B combined</h4>
+      <ul className="sm-sc" role="list">
+        <li className="sm-sc-row sm-sc-legend">
+          <span />
+          <span className="sm-sc-lg-a">
+            <span className="sm-tag sm-tag-a">A</span>
+          </span>
+          <span className="sm-sc-lg-mid">bold = in both</span>
+          <span className="sm-sc-lg-b">
+            <span className="sm-tag sm-tag-b">B</span>
+          </span>
+          <span />
+          <span className="sm-sc-total">total</span>
+        </li>
+        {top.map(({ brand: br, na, nb }) => (
+          <li key={br.id} className={`sm-sc-row${na && nb ? ' sm-sc-both' : ''}`}>
+            <span className="sm-sc-n">{na || '–'}</span>
+            <span className="sm-sc-track sm-sc-track-a" aria-hidden="true">
+              <i style={{ width: `${(na / max) * 100}%` }} />
+            </span>
+            <span
+              className="sm-sc-name"
+              title={`${br.name}: ${tierLabel(br.tier)}, ${plural(br.total, 'location')} citywide`}
+            >
+              <i className="sm-chip" style={{ background: TIER_COLORS[br.tier] }} />
+              <span>{br.name}</span>
+            </span>
+            <span className="sm-sc-track sm-sc-track-b" aria-hidden="true">
+              <i style={{ width: `${(nb / max) * 100}%` }} />
+            </span>
+            <span className="sm-sc-n">{nb || '–'}</span>
+            <span className="sm-sc-total">{na + nb}</span>
+          </li>
+        ))}
+      </ul>
+      {union > top.length && (
+        <p className="sm-hint sm-more">
+          Showing the {top.length} largest of {union} chain brands, ranked by combined locations. The dot color is the chain's tier.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Side-by-side comparison of two neighborhoods, with the citywide mix as a reference
-function CompareView({ a, b, city }: { a: NbhdProps; b: NbhdProps; city: City }) {
+function CompareView({ a, b, city, brands }: { a: NbhdProps; b: NbhdProps; city: City; brands: Brand[] | null }) {
   const small = [a, b].filter((p) => p.n_restaurants < MIN_RESTAURANTS);
   const ap = Math.round(chainShare(a) * 100);
   const bp = Math.round(chainShare(b) * 100);
@@ -327,6 +452,7 @@ function CompareView({ a, b, city }: { a: NbhdProps; b: NbhdProps; city: City })
 
       <BreakdownBars cols={cols} />
       <BreakdownTable cols={cols} />
+      {small.length === 0 && <SharedChains a={a} b={b} brands={brands} />}
     </div>
   );
 }
@@ -338,12 +464,16 @@ function BrandView({
   active,
   onChoose,
   onClear,
+  link,
+  hoverId,
 }: {
   b: Brand;
   byId: Map<string, NbhdProps>;
   active: NbhdProps | null;
   onChoose: (id: string) => void;
   onClear: () => void;
+  link: Link;
+  hoverId: string | null;
 }) {
   const spread = Object.keys(b.nbhds).length;
   const top = Object.entries(b.nbhds)
@@ -376,7 +506,12 @@ function BrandView({
           <ul className="sm-rank" role="list">
             {top.map(({ p, n }, i) => (
               <li key={p.id}>
-                <button type="button" className="sm-result" onClick={() => onChoose(p.id)}>
+                <button
+                  type="button"
+                  className={`sm-result${hoverId === p.id ? ' sm-linked' : ''}`}
+                  onClick={() => onChoose(p.id)}
+                  {...link(p.id)}
+                >
                   <span className="sm-rank-n">#{i + 1}</span>
                   <span>
                     {nameOf(p)}
@@ -395,7 +530,7 @@ function BrandView({
       {!active && <p className="sm-hint sm-prompt">Click a neighborhood to see how many locations it has.</p>}
       <div className="sm-actions">
         <button type="button" className="sm-btn sm-btn-quiet" onClick={onClear}>
-          Clear restaurant
+          Remove {b.name}
         </button>
       </div>
     </>
@@ -411,17 +546,23 @@ export function Week10Interaction() {
   const [compareId, setCompareId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(true); // the results dropdown closes when you click elsewhere
-  // Restaurant names load in the background; `brandId` is the restaurant currently shown on the map
+  // Restaurant names load in the background; `picked` holds up to MAX_BRANDS restaurants shown on the map, each with its own dot color
   const [brands, setBrands] = useState<Brand[] | null>(null);
-  const [brandId, setBrandId] = useState<string | null>(null);
+  const [picked, setPicked] = useState<{ id: string; color: string }[]>([]);
   const [pinRows, setPinRows] = useState<Pin[] | null>(null);
   const [showPins, setShowPins] = useState(false); // the pin layer is optional, so it starts off
   const [tip, setTip] = useState<Tip | null>(null);
   // Legend starts open on wide screens and minimized on phones
   const [legendOpen, setLegendOpen] = useState(() => !window.matchMedia('(max-width: 800px)').matches);
+  // Legend brush: the chain-share range being shown (null = no filter), and whether the hatched "too few restaurants" areas are hidden
+  const [range, setRange] = useState<[number, number] | null>(null);
+  const [hideNoData, setHideNoData] = useState(false);
+  // Linked highlighting: the neighborhood under the cursor on the map, or under the cursor / keyboard focus in a list
+  const [hoverId, setHoverId] = useState<string | null>(null);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const searchRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null); // the legend histogram + ramp, used to turn a pointer position into a value
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
@@ -548,19 +689,22 @@ export function Week10Interaction() {
       .translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
     select(svgRef.current).transition().duration(750).call(zoomRef.current.transform, t);
   };
-  const zoomToBrand = (b: Brand) => {
+  // Frame every location of every listed restaurant
+  const zoomToBrands = (list: Brand[]) => {
     if (!project) return;
     let x0 = Infinity;
     let y0 = Infinity;
     let x1 = -Infinity;
     let y1 = -Infinity;
-    for (const c of b.pts) {
-      const xy = project(c);
-      if (!xy) continue;
-      x0 = Math.min(x0, xy[0]);
-      y0 = Math.min(y0, xy[1]);
-      x1 = Math.max(x1, xy[0]);
-      y1 = Math.max(y1, xy[1]);
+    for (const b of list) {
+      for (const c of b.pts) {
+        const xy = project(c);
+        if (!xy) continue;
+        x0 = Math.min(x0, xy[0]);
+        y0 = Math.min(y0, xy[1]);
+        x1 = Math.max(x1, xy[0]);
+        y1 = Math.max(y1, xy[1]);
+      }
     }
     zoomToBox([x0, y0, x1, y1], BRAND_MIN_SPAN);
   };
@@ -580,20 +724,30 @@ export function Week10Interaction() {
     zoomToBox([x0, y0, x1, y1]);
   };
 
-  // Back to the full-city view: nothing selected, not comparing, zoomed all the way out
+  // Deselect the neighborhood(s) and stop comparing. A restaurant search takes precedence and stays on the map
+  // (it has its own "Clear restaurant" button): the view goes back to framing its locations, or to the whole city without one.
   const clearSelection = () => {
+    setHoverId(null);
     setActiveId(null);
     setCompareId(null);
     setComparing(false);
-    setBrandId(null);
+    if (layers.length) zoomToBrands(layers.map((l) => l.brand));
+    else resetZoom();
+  };
+  // Start over: also drops the restaurant, and zooms all the way out
+  const resetAll = () => {
+    setHoverId(null);
+    setActiveId(null);
+    setCompareId(null);
+    setComparing(false);
+    setPicked([]);
     resetZoom();
   };
-  // Escape does the same, through a ref so the key listener below never goes stale
-  const clearRef = useRef(clearSelection);
-  clearRef.current = clearSelection;
+  // Escape peels one layer at a time (neighborhood first, then restaurant), through a ref so the key listener below never goes stale
+  const escapeRef = useRef<() => void>(() => {});
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') clearRef.current();
+      if (e.key === 'Escape') escapeRef.current();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -601,9 +755,19 @@ export function Week10Interaction() {
 
   // A click picks a neighborhood. Clicking the selected one again deselects it.
   // In compare mode a click picks the second neighborhood (click it again to unpick it).
+  // Clicking the first neighborhood unpicks it too: the second one (if any) takes its place and the map zooms out to wait for a new pick.
   const pick = (id: string) => {
     if (comparing && activeId) {
-      if (id === activeId) return;
+      if (id === activeId) {
+        if (compareId) {
+          setActiveId(compareId);
+          setCompareId(null);
+          resetZoom();
+        } else {
+          clearSelection();
+        }
+        return;
+      }
       if (id === compareId) {
         setCompareId(null);
         zoomToNbhds([activeId]);
@@ -623,27 +787,53 @@ export function Week10Interaction() {
   };
   // Picking from the search box or a ranking list never deselects: re-picking the current neighborhood just re-zooms
   const choose = (id: string) => {
-    if (!comparing && id === activeId) zoomToNbhds([id]);
-    else pick(id);
+    if (id === activeId) {
+      // Picking from search or a list never deselects: re-zoom, or do nothing while comparing
+      if (!comparing) zoomToNbhds([id]);
+    } else pick(id);
+    setHoverId(null); // the row you clicked may disappear without ever getting a pointerleave
     setQuery('');
   };
-  // Picking a restaurant replaces any neighborhood selection and zooms to all of its locations
+  // Picking a restaurant adds it to the map (up to MAX_BRANDS), replaces any neighborhood selection, and zooms to frame every restaurant shown.
+  // Picking one that is already on the map just zooms back to it.
   const chooseBrand = (id: string) => {
-    setBrandId(id);
+    const b = brandById.get(id);
+    if (!b) return;
+    let next = picked;
+    if (!picked.some((s) => s.id === id)) {
+      if (picked.length >= MAX_BRANDS) return;
+      // Take the first dot color no other restaurant is using, so colors stay put when one is removed
+      const color = BRAND_COLORS.find((c) => !picked.some((s) => s.color === c)) ?? BRAND_COLORS[0];
+      next = [...picked, { id, color }];
+      setPicked(next);
+    }
+    setHoverId(null);
     setActiveId(null);
     setCompareId(null);
     setComparing(false);
     setQuery('');
-    const b = brands?.find((x) => x.id === id);
-    if (b) zoomToBrand(b);
+    zoomToBrands(next.flatMap((s) => brandById.get(s.id) ?? []));
   };
-  const clearBrand = () => {
-    setBrandId(null);
+  const removeBrand = (id: string) => {
+    const next = picked.filter((s) => s.id !== id);
+    setPicked(next);
+    if (activeId) return;
+    if (next.length) zoomToBrands(next.flatMap((s) => brandById.get(s.id) ?? []));
+    else resetZoom();
+  };
+  const clearBrands = () => {
+    setPicked([]);
     if (!activeId) resetZoom();
   };
+  escapeRef.current = () => {
+    if (activeId || comparing) clearSelection();
+    else if (picked.length) clearBrands();
+  };
+  // Starting a comparison zooms back out to the full city so the second neighborhood is easy to find and click
   const startCompare = () => {
     setComparing(true);
     setCompareId(null);
+    resetZoom();
   };
   const stopCompare = () => {
     setComparing(false);
@@ -669,17 +859,26 @@ export function Week10Interaction() {
   }, [data]);
 
   const byId = useMemo(() => new Map((data?.features ?? []).map((f) => [f.properties.id, f.properties])), [data]);
-  const brand = useMemo(() => brands?.find((b) => b.id === brandId) ?? null, [brands, brandId]);
-  // All of one restaurant's locations as a single path of zero-length segments; round caps draw them as dots
-  const dots = useMemo(() => {
-    if (!brand || !project) return '';
-    return brand.pts
-      .map((c) => {
+  const brandById = useMemo(() => new Map((brands ?? []).map((b) => [b.id, b])), [brands]);
+  // The restaurants on the map. Each has its dot color, all of its locations as a single path of zero-length segments
+  // (round caps draw them as dots), and the same locations in map coordinates so hover can find the dot under the cursor.
+  const layers = useMemo(() => {
+    if (!project) return [];
+    return picked.flatMap(({ id, color }) => {
+      const brand = brandById.get(id);
+      if (!brand) return [];
+      const x = new Float32Array(brand.pts.length);
+      const y = new Float32Array(brand.pts.length);
+      let dots = '';
+      brand.pts.forEach((c, i) => {
         const xy = project(c);
-        return xy ? `M${xy[0].toFixed(2)},${xy[1].toFixed(2)}h0.001` : '';
-      })
-      .join('');
-  }, [brand, project]);
+        x[i] = xy ? xy[0] : NaN;
+        y[i] = xy ? xy[1] : NaN;
+        if (xy) dots += `M${xy[0].toFixed(2)},${xy[1].toFixed(2)}h0.001`;
+      });
+      return [{ brand, color, dots, x, y }];
+    });
+  }, [picked, brandById, project]);
   // Every restaurant projected into map coordinates, in a fixed shuffled order so the same pins are kept at every zoom level
   const pins = useMemo(() => {
     if (!project || !pinRows) return null;
@@ -723,7 +922,7 @@ export function Week10Interaction() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
     shownRef.current = { xs: [], ys: [], ids: [] };
-    if (!pins || !showPins || brand) return;
+    if (!pins || !showPins || layers.length) return;
 
     // Map coordinates to screen pixels (the svg is centered and scaled to fit, like preserveAspectRatio "meet")
     const { k, x: tx, y: ty } = transformRef.current;
@@ -772,7 +971,7 @@ export function Week10Interaction() {
 
   useEffect(() => {
     schedule();
-  }, [pins, showPins, brand, schedule]);
+  }, [pins, showPins, layers, schedule]);
 
   useEffect(() => {
     if (!data || !mapRef.current) return;
@@ -802,6 +1001,27 @@ export function Week10Interaction() {
     return { eligible, rank: new Map(eligible.map((p, i) => [p.id, i + 1])) };
   }, [data]);
 
+  // Does a neighborhood pass the legend brush? Both ends are open: the lowest stop means "anything lower" and the top stop
+  // means "hi or more", matching how the color scale is clamped at the 98th percentile.
+  const inRange = useCallback(
+    (p: NbhdProps) => {
+      if (!range) return true;
+      const s = chainShare(p);
+      return (range[0] <= lo || s >= range[0]) && (range[1] >= hi || s <= range[1]);
+    },
+    [range, lo, hi],
+  );
+
+  // Histogram of chain share over the same domain as the color ramp, plus how many neighborhoods the brush keeps
+  const brushStats = useMemo(() => {
+    const bins = new Array<number>(HIST_BINS).fill(0);
+    for (const p of ranking.eligible) {
+      const i = Math.floor(((chainShare(p) - lo) / (hi - lo)) * HIST_BINS);
+      bins[Math.min(HIST_BINS - 1, Math.max(0, i))]++;
+    }
+    return { bins, max: Math.max(1, ...bins), inside: ranking.eligible.filter(inRange).length, total: ranking.eligible.length };
+  }, [ranking, lo, hi, inRange]);
+
   if (failed) {
     return (
       <p className="sm-notice" role="alert">
@@ -813,6 +1033,130 @@ export function Week10Interaction() {
 
   const active = data.features.find((f) => f.properties.id === activeId)?.properties ?? null;
   const other = data.features.find((f) => f.properties.id === compareId)?.properties ?? null;
+
+  // ---- Legend brush ----
+  const span = hi - lo;
+  const frac = (v: number) => (v - lo) / span;
+  const valueAt = (clientX: number) => {
+    const el = trackRef.current;
+    if (!el) return lo;
+    const r = el.getBoundingClientRect();
+    const f = r.width ? (clientX - r.left) / r.width : 0;
+    return lo + Math.min(1, Math.max(0, f)) * span;
+  };
+  // Move one handle. The handles can meet but never cross, and a range that spans the whole ramp is the same as no filter.
+  const moveHandle = (which: 0 | 1, v: number) => {
+    const cur = range ?? [lo, hi];
+    const next: [number, number] =
+      which === 0 ? [Math.min(Math.max(v, lo), cur[1]), cur[1]] : [cur[0], Math.max(Math.min(v, hi), cur[0])];
+    setRange(next[0] <= lo && next[1] >= hi ? null : next);
+  };
+  const onHandleKey = (which: 0 | 1) => (e: React.KeyboardEvent) => {
+    const v = (range ?? [lo, hi])[which];
+    const step = e.shiftKey ? KEY_STEP * 5 : KEY_STEP;
+    let next: number;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = Math.round((v + step) * 100) / 100;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = Math.round((v - step) * 100) / 100;
+    else if (e.key === 'Home') next = lo;
+    else if (e.key === 'End') next = hi;
+    else return;
+    e.preventDefault();
+    moveHandle(which, next);
+  };
+  // Clicking the histogram or ramp moves whichever handle is closer
+  const onTrackDown = (e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('.sm-handle')) return;
+    const v = valueAt(e.clientX);
+    const cur = range ?? [lo, hi];
+    moveHandle(Math.abs(v - cur[0]) <= Math.abs(v - cur[1]) ? 0 : 1, v);
+  };
+  // A bar is "inside" when its slice of the ramp overlaps the brush
+  const binInside = (i: number) => {
+    if (!range) return true;
+    const bl = lo + (i / HIST_BINS) * span;
+    const bh = lo + ((i + 1) / HIST_BINS) * span;
+    return (range[0] <= lo || bh > range[0]) && (range[1] >= hi || bl < range[1]);
+  };
+  const rangeText = !range
+    ? ''
+    : range[0] <= lo
+      ? `${pct(range[1])} chains or less`
+      : range[1] >= hi
+        ? `${pct(range[0])} chains or more`
+        : `${pct(range[0])} to ${pct(range[1])} chains`;
+  // Sampled from the same scale as the map so the legend matches the fills exactly
+  const rampCss = `linear-gradient(to right, ${Array.from({ length: 9 }, (_, i) => color(lo + (i / 8) * span)).join(', ')})`;
+  const inBrush = range ? ranking.eligible.filter(inRange) : null;
+  const handle = (which: 0 | 1) => {
+    const v = (range ?? [lo, hi])[which];
+    return (
+      <div
+        key={which}
+        role="slider"
+        tabIndex={0}
+        className="sm-handle"
+        // When both handles sit on the same spot, keep the one that can still move on top
+        style={{ left: `${frac(v) * 100}%`, zIndex: which === 0 && frac(v) > 0.5 ? 3 : 2 }}
+        aria-orientation="horizontal"
+        aria-label={which === 0 ? 'Lowest chain share shown' : 'Highest chain share shown'}
+        aria-valuemin={Math.round(lo * 100)}
+        aria-valuemax={Math.round(hi * 100)}
+        aria-valuenow={Math.round(v * 100)}
+        aria-valuetext={`${pct(v)} chains${which === 1 && v >= hi ? ' or more' : ''}`}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          e.currentTarget.focus();
+        }}
+        onPointerMove={(e) => {
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) moveHandle(which, valueAt(e.clientX));
+        }}
+        onKeyDown={onHandleKey(which)}
+      />
+    );
+  };
+
+  // ---- Linked highlighting ----
+  const hoverP = hoverId ? (byId.get(hoverId) ?? null) : null;
+  const hoverShare = hoverP && hoverP.n_restaurants >= MIN_RESTAURANTS ? chainShare(hoverP) : null;
+  const hoverFrac = hoverShare === null ? null : Math.min(1, Math.max(0, frac(hoverShare)));
+  const hoverBin = hoverFrac === null ? -1 : Math.min(HIST_BINS - 1, Math.floor(hoverFrac * HIST_BINS));
+  const hoverLine = hoverP
+    ? hoverShare === null
+      ? `${nameOf(hoverP)}: too few restaurants to compare`
+      : `${nameOf(hoverP)}: ${pct(hoverShare)} chains`
+    : '';
+  const link: Link = (id) => ({
+    onPointerEnter: (e) => {
+      if (e.pointerType === 'mouse') setHoverId(id);
+    },
+    onPointerLeave: () => setHoverId(null),
+    // Keyboard focus only; a mouse click also focuses the row, and that row may be gone a moment later
+    onFocus: (e) => {
+      if (e.currentTarget.matches(':focus-visible')) setHoverId(id);
+    },
+    onBlur: () => setHoverId(null),
+  });
+  const rankRow = (p: NbhdProps) => (
+    <li key={p.id}>
+      <button
+        type="button"
+        className={`sm-result${hoverId === p.id ? ' sm-linked' : ''}`}
+        onClick={() => choose(p.id)}
+        {...link(p.id)}
+      >
+        <span className="sm-rank-n">#{ranking.rank.get(p.id)}</span>
+        <span className="sm-rank-name">
+          {nameOf(p)}
+          {p.boro && <span className="sm-result-boro">{titleCase(p.boro)}</span>}
+        </span>
+        <span className="sm-rank-share">
+          <i className="sm-chip" style={{ background: color(chainShare(p)) }} />
+          {pct(chainShare(p))}
+        </span>
+      </button>
+    </li>
+  );
 
   // Search: every word typed must appear in the neighborhood's name or borough
   const q = query.trim().toLowerCase();
@@ -846,14 +1190,58 @@ export function Week10Interaction() {
             return sa - sb || b.total - a.total || a.name.localeCompare(b.name);
           })
       : [];
-  const brandResults = brandMatches.slice(0, MAX_BRAND_RESULTS);
+  const isPicked = (id: string) => picked.some((s) => s.id === id);
+  // Once the map is full only restaurants already on it stay clickable; the rest get a hint to remove one first
+  const brandFull = picked.length >= MAX_BRANDS;
+  const brandPool = brandFull ? brandMatches.filter((b) => isPicked(b.id)) : brandMatches;
+  const brandBlocked = brandFull && brandMatches.length > brandPool.length;
+  const brandResults = brandPool.slice(0, MAX_BRAND_RESULTS);
   const brandWhere = (b: Brand) =>
     b.total === 1 ? (byId.get(Object.keys(b.nbhds)[0])?.name ?? '1 location') : plural(b.total, 'location');
 
   // Tooltip follows the mouse
   // Restaurants under the cursor: only pins that are drawn, and only once zoomed in. Pins stacked on one spot are all listed.
   const pinsAt = (x: number, y: number) => {
-    if (!pinRows || !showPins || brand || transformRef.current.k < HOVER_ZOOM) return null;
+    // While restaurants are selected, their own dots answer hover at any zoom level
+    if (layers.length && mapRef.current) {
+      const w = mapRef.current.clientWidth;
+      const h = mapRef.current.clientHeight;
+      const { k, x: tx, y: ty } = transformRef.current;
+      const fit = Math.min(w, h) / SIZE;
+      const ox = (w - SIZE * fit) / 2 + tx * fit;
+      const oy = (h - SIZE * fit) / 2 + ty * fit;
+      const m = k * fit;
+      const near: { l: number; i: number; d: number }[] = [];
+      layers.forEach((layer, l) => {
+        for (let i = 0; i < layer.brand.pts.length; i++) {
+          const dx = ox + m * layer.x[i] - x;
+          const dy = oy + m * layer.y[i] - y;
+          const d = dx * dx + dy * dy;
+          if (d <= HIT_RADIUS * HIT_RADIUS) near.push({ l, i, d });
+        }
+      });
+      if (!near.length) return null;
+      near.sort((a, b) => a.d - b.d);
+      return {
+        list: near.slice(0, MAX_PIN_TIP).map(({ l, i }): Pin => {
+          const { brand, color } = layers[l];
+          const info = brand.info[i];
+          const home = byId.get(info.nbhd);
+          return {
+            name: info.name,
+            brand: brand.name,
+            locs: brand.total,
+            cuisine: info.cuisine,
+            lon: brand.pts[i][0],
+            lat: brand.pts[i][1],
+            nbhd: home ? nameOf(home) : undefined,
+            color,
+          };
+        }),
+        more: Math.max(0, near.length - MAX_PIN_TIP),
+      };
+    }
+    if (!pinRows || !showPins || layers.length || transformRef.current.k < HOVER_ZOOM) return null;
     const { xs, ys, ids } = shownRef.current;
     const near: { id: number; d: number }[] = [];
     for (let i = 0; i < ids.length; i++) {
@@ -868,6 +1256,7 @@ export function Week10Interaction() {
   };
   const showTip = (e: React.PointerEvent, p: NbhdProps) => {
     if (e.pointerType !== 'mouse' || !mapRef.current) return;
+    setHoverId(p.id);
     const box = mapRef.current.getBoundingClientRect();
     const x = e.clientX - box.left;
     const y = e.clientY - box.top;
@@ -877,7 +1266,12 @@ export function Week10Interaction() {
       setTip({ text: '', x, y, pins: hit.list, more: hit.more, flipX: x > box.width - 280, flipY: y > box.height - 190 });
       return;
     }
-    setTip({ text: brand ? `${nameOf(p)}: ${plural(brand.nbhds[p.id] ?? 0, 'location')}` : nameOf(p), x, y });
+    // One restaurant: "Name: 3 locations". Several: "Name: 3 Starbucks · 0 Dunkin'".
+    const here =
+      layers.length === 1
+        ? plural(layers[0].brand.nbhds[p.id] ?? 0, 'location')
+        : layers.map((l) => `${l.brand.nbhds[p.id] ?? 0} ${l.brand.name}`).join(' · ');
+    setTip({ text: layers.length ? `${nameOf(p)}: ${here}` : nameOf(p), x, y });
   };
 
   return (
@@ -911,22 +1305,27 @@ export function Week10Interaction() {
             <g ref={gRef}>
               {data.features.map((f) => {
                 const p = f.properties;
-                // Shade by chain share; neighborhoods with too few restaurants get the hatched fill
-                // While a restaurant is on the map the fills go neutral so its dots stand out
-                const fill = brand
-                  ? 'var(--nbhd)'
-                  : p.n_restaurants < MIN_RESTAURANTS
-                    ? NO_DATA
-                    : color(chainShare(p));
+                // Shade by chain share; neighborhoods with too few restaurants get the hatched fill.
+                // The shading stays on while a restaurant is selected, so its dots can be read against it.
+                const fill = p.n_restaurants < MIN_RESTAURANTS ? NO_DATA : color(chainShare(p));
+                // Outside the legend range (or hidden no-data areas) fade out but stay clickable;
+                // the selected neighborhoods never fade, so a selection can't vanish under the brush
+                const dimmed =
+                  (p.n_restaurants < MIN_RESTAURANTS ? hideNoData : !inRange(p)) &&
+                  p.id !== activeId &&
+                  p.id !== compareId;
                 return (
                   <path
                     key={p.id}
                     d={paths.get(p.id)}
-                    className="sm-nbhd sm-filled"
+                    className={`sm-nbhd sm-filled${dimmed ? ' sm-dim' : ''}`}
                     style={{ fill }}
                     onPointerEnter={(e) => showTip(e, p)}
                     onPointerMove={(e) => showTip(e, p)}
-                    onPointerLeave={() => setTip(null)}
+                    onPointerLeave={() => {
+                      setTip(null);
+                      setHoverId(null);
+                    }}
                     onClick={() => pick(p.id)}
                   />
                 );
@@ -940,10 +1339,27 @@ export function Week10Interaction() {
               {data.features.map((f) => (
                 <path key={f.properties.id} d={paths.get(f.properties.id)} className="sm-edge" />
               ))}
-              {brand && (
+              {/* All halos first, then all dots, so one restaurant's halo never covers another's dot */}
+              {layers.map((l) => (
+                <path
+                  key={`${l.brand.id}-halo`}
+                  d={l.dots}
+                  className="sm-dot-halo"
+                  style={{ strokeWidth: l.brand.total > 150 ? 6 : 10 }}
+                />
+              ))}
+              {layers.map((l) => (
+                <path
+                  key={l.brand.id}
+                  d={l.dots}
+                  className="sm-dot-path"
+                  style={{ ...brandVar(l.color), strokeWidth: l.brand.total > 150 ? 3.5 : 6 }}
+                />
+              ))}
+              {hoverId && hoverId !== activeId && hoverId !== compareId && paths.get(hoverId) && (
                 <>
-                  <path d={dots} className="sm-dot-halo" style={{ strokeWidth: brand.total > 150 ? 6 : 10 }} />
-                  <path d={dots} className="sm-dot-path" style={{ strokeWidth: brand.total > 150 ? 3.5 : 6 }} />
+                  <path d={paths.get(hoverId)} className="sm-hover-halo" />
+                  <path d={paths.get(hoverId)} className="sm-hover" />
                 </>
               )}
               {activeId && (
@@ -964,7 +1380,7 @@ export function Week10Interaction() {
           {/* Restaurant pins are drawn here, under the controls and legend */}
           <canvas ref={canvasRef} className="sm-pins" aria-hidden="true" />
 
-          {!brand && (
+          {!layers.length && (
             <div className="sm-controls">
               <button type="button" className="sm-pin-toggle" aria-pressed={showPins} onClick={() => setShowPins((v) => !v)}>
                 <i
@@ -980,7 +1396,7 @@ export function Week10Interaction() {
           {legendOpen ? (
             <div className="sm-legend">
               <div className="sm-legend-bar">
-                <strong>{brand ? 'Restaurant locations' : 'Chain share by area'}</strong>
+                <strong>Chain share by area</strong>
                 <button
                   type="button"
                   className="sm-legend-btn"
@@ -993,26 +1409,77 @@ export function Week10Interaction() {
               </div>
 
               <div className="sm-legend-group">
-                {brand ? (
+                {layers.length > 0 && (
                   <>
-                    <span className="sm-key">
-                      <i className="sm-dot" /> One {brand.name} location
-                    </span>
-                    <span className="sm-hint">Neighborhoods are shown in a single neutral color.</span>
+                    {layers.map((l) => (
+                      <span key={l.brand.id} className="sm-key" style={brandVar(l.color)}>
+                        <i className="sm-dot" /> One {l.brand.name} location
+                      </span>
+                    ))}
+                    <span className="sm-hint">Hover a dot to see that restaurant.</span>
                   </>
-                ) : (
+                )}
                   <>
                     <strong>Share of restaurants that are chains</strong>
-                    <span className="sm-ramp" style={{ background: `linear-gradient(to right, ${RAMP.join(', ')})` }} />
+                    {/* Histogram + ramp double as a brush: drag the handles (or use the arrow keys) to keep only a range of chain share */}
+                    <div className="sm-brush" ref={trackRef} onPointerDown={onTrackDown}>
+                      <div className="sm-hist" aria-hidden="true">
+                        {brushStats.bins.map((n, i) => (
+                          <span
+                            key={i}
+                            className={`sm-bar${binInside(i) ? '' : ' sm-bar-out'}${hoverBin === i ? ' sm-bar-hover' : ''}`}
+                            style={{
+                              height: `${(n / brushStats.max) * 100}%`,
+                              background: color(lo + ((i + 0.5) / HIST_BINS) * span),
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div className="sm-ramp" style={{ background: rampCss }} />
+                      {range && (
+                        <>
+                          <span className="sm-mask sm-mask-lo" style={{ width: `${frac(range[0]) * 100}%` }} />
+                          <span className="sm-mask sm-mask-hi" style={{ width: `${(1 - frac(range[1])) * 100}%` }} />
+                        </>
+                      )}
+                      {hoverFrac !== null && <span className="sm-hover-tick" style={{ left: `${hoverFrac * 100}%` }} />}
+                      {handle(0)}
+                      {handle(1)}
+                    </div>
                     <span className="sm-ramp-labels">
                       <span>{pct(lo)} or less</span>
                       <span>{pct(hi)} or more</span>
                     </span>
-                    <span className="sm-hint">Each neighborhood is shaded by its overall share of chains.</span>
-                    <span className="sm-key">
-                      <i className="sm-swatch sm-swatch-nodata" /> Fewer than {MIN_RESTAURANTS} restaurants, too few to compare
+                    <span className="sm-brush-readout" aria-live="polite">
+                      {range ? (
+                        <>
+                          <b>
+                            {brushStats.inside} of {brushStats.total}
+                          </b>{' '}
+                          neighborhoods: {rangeText}
+                        </>
+                      ) : (
+                        <span className="sm-hint">Drag the handles to show only a range of chain share.</span>
+                      )}
                     </span>
-                    {showPins && (
+                    <span className="sm-brush-hover" aria-hidden="true">
+                      {hoverLine || '\u00a0'}
+                    </span>
+                    {range && (
+                      <button type="button" className="sm-legend-reset" onClick={() => setRange(null)}>
+                        Reset range
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={`sm-key sm-key-btn${hideNoData ? ' sm-key-off' : ''}`}
+                      aria-pressed={!hideNoData}
+                      title={hideNoData ? 'Show these neighborhoods again' : 'Click to fade these neighborhoods out'}
+                      onClick={() => setHideNoData((v) => !v)}
+                    >
+                      <i className="sm-swatch sm-swatch-nodata" /> Fewer than {MIN_RESTAURANTS} restaurants, too few to compare
+                    </button>
+                    {showPins && !layers.length && (
                       <>
                         <span className="sm-key">
                           <i className="sm-pin-key" style={{ background: PIN_COLOR }} /> One restaurant
@@ -1025,7 +1492,6 @@ export function Week10Interaction() {
                       </>
                     )}
                   </>
-                )}
               </div>
             </div>
           ) : (
@@ -1036,14 +1502,14 @@ export function Week10Interaction() {
               aria-label="Show legend"
               aria-expanded="false"
             >
-              Legend
+              Legend{range || hideNoData ? ' (filtered)' : ''}
             </button>
           )}
 
           <div className="sm-zoom" role="group" aria-label="Map zoom">
             <button type="button" onClick={() => zoomBy(1.6)} aria-label="Zoom in">+</button>
             <button type="button" onClick={() => zoomBy(1 / 1.6)} aria-label="Zoom out">−</button>
-            <button type="button" onClick={clearSelection} aria-label="Reset zoom and clear selection">⟲</button>
+            <button type="button" onClick={resetAll} aria-label="Reset zoom and clear selection">⟲</button>
           </div>
 
           {tip &&
@@ -1059,11 +1525,17 @@ export function Week10Interaction() {
               >
                 {tip.pins.map((r, i) => (
                   <div key={i} className="sm-tip-row">
-                    <strong>{r.name}</strong>
+                    <strong>
+                      {r.color && <i className="sm-dot sm-dot-tip" style={brandVar(r.color)} />}
+                      {r.name}
+                    </strong>
                     <span>
                       {r.brand} · {plural(r.locs, 'location')} citywide
                     </span>
-                    <span>{r.cuisine}</span>
+                    <span>
+                      {r.cuisine}
+                      {r.nbhd ? ` · ${r.nbhd}` : ''}
+                    </span>
                   </div>
                 ))}
                 {!!tip.more && <div className="sm-tip-more">+{tip.more} more at this spot</div>}
@@ -1114,7 +1586,12 @@ export function Week10Interaction() {
                 <ul className="sm-results" role="list">
                   {results.map((p) => (
                     <li key={p.id}>
-                      <button type="button" className="sm-result" onClick={() => choose(p.id)}>
+                      <button
+                        type="button"
+                        className={`sm-result${hoverId === p.id ? ' sm-linked' : ''}`}
+                        onClick={() => choose(p.id)}
+                        {...link(p.id)}
+                      >
                         <span>
                           {nameOf(p)}
                           {p.boro && <span className="sm-result-boro">{titleCase(p.boro)}</span>}
@@ -1135,7 +1612,9 @@ export function Week10Interaction() {
             )}
             {brandResults.length > 0 && (
               <>
-                <h4 className="sm-results-head">Restaurants and chains</h4>
+                <h4 className="sm-results-head">
+                  Restaurants and chains{picked.length > 0 && ` (${picked.length} of ${MAX_BRANDS} on map)`}
+                </h4>
                 <ul className="sm-results" role="list">
                   {brandResults.map((b) => (
                     <li key={b.id}>
@@ -1144,19 +1623,24 @@ export function Week10Interaction() {
                           <i className="sm-chip" style={{ background: TIER_COLORS[b.tier] }} />
                           {b.name}
                         </span>
-                        <span className="sm-result-share">{brandWhere(b)}</span>
+                        <span className="sm-result-share">{isPicked(b.id) ? 'On map' : brandWhere(b)}</span>
                       </button>
                     </li>
                   ))}
                 </ul>
-                {brandMatches.length > brandResults.length && (
+                {brandPool.length > brandResults.length && (
                   <p className="sm-hint sm-more">
-                    Showing {brandResults.length} of {brandMatches.length.toLocaleString()}. Keep typing to narrow it down.
+                    Showing {brandResults.length} of {brandPool.length.toLocaleString()}. Keep typing to narrow it down.
                   </p>
                 )}
               </>
             )}
-            {results.length === 0 && brandResults.length === 0 && (
+            {brandBlocked && (
+              <p className="sm-hint sm-more">
+                {MAX_BRANDS} restaurants are already on the map. Remove one to add another.
+              </p>
+            )}
+            {results.length === 0 && brandResults.length === 0 && !brandBlocked && (
               <p className="sm-note sm-more">
                 No neighborhoods or restaurants match “{query.trim()}”.
                 {!brands && ' Restaurant names are still loading.'}
@@ -1167,15 +1651,52 @@ export function Week10Interaction() {
             </div>
           </div>
 
-          {brand && (
-            <section aria-live="polite">
-              <h3>Restaurant: {brand.name}</h3>
-              <BrandView b={brand} byId={byId} active={active} onChoose={choose} onClear={clearBrand} />
+          {layers.length > 0 && (
+            <section aria-label="Restaurants on the map">
+              <ul className="sm-picked" role="list">
+                {layers.map((l) => (
+                  <li key={l.brand.id} className="sm-picked-chip" style={brandVar(l.color)}>
+                    <i className="sm-dot" />
+                    <span>{l.brand.name}</span>
+                    <button type="button" onClick={() => removeBrand(l.brand.id)} aria-label={`Remove ${l.brand.name} from the map`}>
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="sm-hint">
+                {layers.length} of {MAX_BRANDS} restaurants on the map.{' '}
+                {layers.length < MAX_BRANDS ? 'Search to add another.' : 'Remove one to add another.'}
+              </p>
+              {layers.length > 1 && (
+                <div className="sm-actions">
+                  <button type="button" className="sm-btn sm-btn-quiet" onClick={clearBrands}>
+                    Clear all restaurants
+                  </button>
+                </div>
+              )}
             </section>
           )}
 
+          {layers.map((l) => (
+            <section key={l.brand.id} aria-live="polite">
+              <h3 style={brandVar(l.color)}>
+                <i className="sm-dot" /> Restaurant: {l.brand.name}
+              </h3>
+              <BrandView
+                b={l.brand}
+                byId={byId}
+                active={active}
+                onChoose={choose}
+                onClear={() => removeBrand(l.brand.id)}
+                link={link}
+                hoverId={hoverId}
+              />
+            </section>
+          ))}
+
           {!active ? (
-            brand ? null : (
+            layers.length ? null : (
             <>
             <section>
               <h3>Citywide Breakdown</h3>
@@ -1203,35 +1724,47 @@ export function Week10Interaction() {
 
             <section>
               <h3>Most and Least Chain-Heavy</h3>
-              <p className="sm-note">
-                Ranked by share of restaurants that are chains, among the {ranking.eligible.length} neighborhoods with at
-                least {MIN_RESTAURANTS} restaurants.
-              </p>
-              {[
-                { title: 'Most chains', list: ranking.eligible.slice(0, RANK_N) },
-                { title: 'Fewest chains', list: ranking.eligible.slice(-RANK_N).reverse() },
-              ].map(({ title, list }) => (
-                <div key={title} className="sm-rank-group">
-                  <h4>{title}</h4>
-                  <ul className="sm-rank" role="list">
-                    {list.map((p) => (
-                      <li key={p.id}>
-                        <button type="button" className="sm-result" onClick={() => choose(p.id)}>
-                          <span className="sm-rank-n">#{ranking.rank.get(p.id)}</span>
-                          <span className="sm-rank-name">
-                            {nameOf(p)}
-                            {p.boro && <span className="sm-result-boro">{titleCase(p.boro)}</span>}
-                          </span>
-                          <span className="sm-rank-share">
-                            <i className="sm-chip" style={{ background: color(chainShare(p)) }} />
-                            {pct(chainShare(p))}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {inBrush ? (
+                <>
+                  <p className="sm-note">
+                    <b className="sm-em">{inBrush.length}</b> of {ranking.eligible.length} neighborhoods fall in the legend
+                    range ({rangeText}). Ranks are citywide.
+                  </p>
+                  <div className="sm-rank-group">
+                    <h4>In range, most chains first</h4>
+                    {inBrush.length > 0 ? (
+                      <ul className="sm-rank" role="list">
+                        {inBrush.slice(0, MAX_RANGE_LIST).map((p) => rankRow(p))}
+                      </ul>
+                    ) : (
+                      <p className="sm-hint">No neighborhoods in this range.</p>
+                    )}
+                    {inBrush.length > MAX_RANGE_LIST && (
+                      <p className="sm-hint sm-more">
+                        Showing {MAX_RANGE_LIST} of {inBrush.length}. Narrow the range to see the rest.
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="sm-note">
+                    Ranked by share of restaurants that are chains, among the {ranking.eligible.length} neighborhoods with at
+                    least {MIN_RESTAURANTS} restaurants.
+                  </p>
+                  {[
+                    { title: 'Most chains', list: ranking.eligible.slice(0, RANK_N) },
+                    { title: 'Fewest chains', list: ranking.eligible.slice(-RANK_N).reverse() },
+                  ].map(({ title, list }) => (
+                    <div key={title} className="sm-rank-group">
+                      <h4>{title}</h4>
+                      <ul className="sm-rank" role="list">
+                        {list.map((p) => rankRow(p))}
+                      </ul>
+                    </div>
+                  ))}
+                </>
+              )}
             </section>
 
             </>
@@ -1246,10 +1779,10 @@ export function Week10Interaction() {
               {comparing && !other && (
                 <p className="sm-note">
                   Comparing with <span className="sm-tag sm-tag-a">A</span> <b className="sm-em">{nameOf(active)}</b>.
-                  Now click a second neighborhood on the map.
+                  Now click a second neighborhood on the map, or click A again to deselect it.
                 </p>
               )}
-              {comparing && other && <CompareView a={active} b={other} city={citywide} />}
+              {comparing && other && <CompareView a={active} b={other} city={citywide} brands={brands} />}
               {!comparing && (
                 <NeighborhoodView p={active} city={citywide} rank={ranking.rank.get(active.id)} ranked={ranking.eligible.length} />
               )}
@@ -1271,9 +1804,9 @@ export function Week10Interaction() {
                   </button>
                 )}
                 <button type="button" className="sm-btn sm-btn-quiet" onClick={clearSelection}>
-                  Back to citywide view
+                  {layers.length === 1 ? `Back to ${layers[0].brand.name}` : layers.length ? 'Back to restaurants' : 'Back to citywide view'}
                 </button>
-                {comparing && other && <p className="sm-hint">Click another neighborhood to replace B.</p>}
+                {comparing && other && <p className="sm-hint">Click another neighborhood to replace B, or click A or B to deselect it.</p>}
               </div>
             </section>
           )}

@@ -10,7 +10,7 @@
   --hover-btn: #e1ecec; /* Button hover */
   --select: #0B7A75;   /* Outline of the selected neighborhood (vivid teal) */
   --select-b: #7A3E9D; /* Outline of the second neighborhood when comparing (purple, unlike the teal ramp and warm tiers) */
-  --brand: #B5365A;    /* Dots for one restaurant name (distinct from the teal and purple selection outlines) */
+  --brand: #B5365A;    /* Dots for one restaurant name (distinct from the teal and purple selection outlines); each selected restaurant overrides this with its own color */
   --panel-w: 26rem;
 
   /* Fill the window. */
@@ -848,4 +848,373 @@
 
 .sm-tip-more {
   font-style: italic;
+}
+
+/* ---- Interactive legend: histogram + ramp brush ---- */
+.sm-brush {
+  position: relative;
+  padding-bottom: 0.35rem; /* room for the handles to overhang the ramp */
+  cursor: pointer;
+  touch-action: none; /* dragging a handle must not scroll the page */
+  user-select: none;
+}
+
+.sm-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 2.4rem;
+  margin-bottom: 2px;
+  pointer-events: none;
+}
+
+.sm-bar {
+  flex: 1;
+  border-radius: 1px 1px 0 0;
+  transition: opacity 0.15s;
+}
+
+.sm-bar-out {
+  opacity: 0.2;
+}
+
+/* The bar holding the neighborhood you are hovering */
+.sm-bar-hover {
+  outline: 2px solid var(--ink);
+  outline-offset: 0;
+}
+
+/* Washes out the part of the ramp the brush is not keeping */
+.sm-mask {
+  position: absolute;
+  bottom: 0.35rem;
+  height: calc(0.6rem + 2px); /* same height as .sm-ramp, border included */
+  background: rgba(255, 255, 255, 0.78);
+  pointer-events: none;
+}
+
+.sm-mask-lo {
+  left: 0;
+}
+
+.sm-mask-hi {
+  right: 0;
+}
+
+/* Where the hovered neighborhood sits on the ramp */
+.sm-hover-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0.35rem;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.sm-handle {
+  position: absolute;
+  bottom: 0;
+  width: 0.7rem;
+  height: 1.15rem;
+  margin-left: -0.35rem;
+  box-sizing: border-box;
+  border: 2px solid var(--ink);
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 255, 0.92);
+  cursor: ew-resize;
+}
+
+.sm-handle:hover {
+  background: var(--hover-btn);
+}
+
+.sm-handle:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+.sm-brush-readout {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reserved height so the legend doesn't jump while you hover over the map */
+.sm-brush-hover {
+  min-height: 1.2em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-legend-reset {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sm-legend-reset:focus-visible,
+.sm-key-btn:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* The "too few restaurants" key is a toggle */
+.sm-key-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sm-key-btn:hover {
+  color: var(--ink);
+}
+
+.sm-key-off .sm-swatch {
+  opacity: 0.35;
+}
+
+/* ---- Map: legend brush and linked highlighting ---- */
+/* Outside the brush: fade the fill but keep the neighborhood clickable */
+.sm-nbhd.sm-dim {
+  fill-opacity: 0.16;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sm-nbhd {
+    transition: fill-opacity 0.2s ease;
+  }
+}
+
+/* Hover outline: dark slate, so it never reads as the teal selection or the purple comparison */
+.sm-hover-halo,
+.sm-hover {
+  fill: none;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.sm-hover-halo {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 4.5;
+}
+
+.sm-hover {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+
+/* A list row whose neighborhood is under the cursor on the map */
+.sm-result.sm-linked {
+  background: var(--hover-btn);
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+/* ---- Compare view: chains in common ---- */
+.sm-shared {
+  margin-top: 1rem;
+}
+
+/* One bar: chain brands only in A, in both, only in B (flex-grow carries the counts) */
+.sm-venn {
+  display: flex;
+  gap: 2px;
+  height: 0.9rem;
+}
+
+.sm-venn > span {
+  min-width: 3px;
+  border-radius: 0.15rem;
+}
+
+.sm-venn-a {
+  background: var(--select);
+}
+
+.sm-venn-both {
+  background: #8fa0a8;
+}
+
+.sm-venn-b {
+  background: var(--select-b);
+}
+
+.sm-venn-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-venn-key > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Mirrored bars: count | A bar | chain name | B bar | count */
+.sm-sc {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sm-sc-row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 7.5rem minmax(0, 1fr) 1.5rem 2rem;
+  align-items: center;
+  column-gap: 0.35rem;
+  padding: 0.22rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.82rem;
+}
+
+.sm-sc-n {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.sm-sc-track {
+  display: flex;
+  height: 0.7rem;
+}
+
+.sm-sc-track-a {
+  justify-content: flex-end;
+}
+
+.sm-sc-track i {
+  display: block;
+  height: 100%;
+}
+
+.sm-sc-track-a i {
+  background: var(--select);
+  border-radius: 0.15rem 0 0 0.15rem;
+}
+
+.sm-sc-track-b i {
+  background: var(--select-b);
+  border-radius: 0 0.15rem 0.15rem 0;
+}
+
+.sm-sc-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--muted);
+}
+
+.sm-sc-name .sm-chip {
+  flex: none;
+}
+
+.sm-sc-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chains found in both neighborhoods stand out */
+.sm-sc-both .sm-sc-name {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.sm-sc-legend {
+  border-bottom: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.sm-sc-lg-a {
+  text-align: right;
+}
+
+.sm-sc-lg-mid {
+  text-align: center;
+  font-style: italic;
+}
+
+/* Combined locations in A and B: the number the list is sorted by */
+.sm-sc-total {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sm-sc-legend .sm-sc-total {
+  color: var(--muted);
+  font-weight: 400;
+}
+/* Up to three restaurants on the map: one chip each, colored like its dots */
+.sm-picked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.sm-picked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.15rem 0.25rem 0.15rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 0.85rem;
+}
+
+.sm-picked-chip button {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sm-picked-chip button:hover {
+  background: var(--hover-btn);
+  color: var(--ink);
+}
+
+.sm-picked-chip button:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 1px;
+}
+
+.sm-panel h3 .sm-dot {
+  margin-right: 0.15rem;
+  vertical-align: -0.05em;
+}
+
+.sm-dot-tip {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.35rem;
+  border-width: 1.5px;
 }
