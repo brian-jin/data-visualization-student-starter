@@ -1,0 +1,2012 @@
+.sm {
+  --ink: #2b3a46;       /* Main text color (deep slate, from the color palette) */
+  --muted: #5d6f78;     /* Secondary text color */
+  --rule: #cfdadb;      /* Light blue-gray used for borders */
+  --accent: #3B6064;    /* Headings and highlights */
+  --paper: #fff;        /* Bar and panel background */
+  --land: #dde9eb;      /* Map background / water: pale tint of the palette's teal */
+  --nbhd: #ece7da;      /* Neighborhood fill (fallback before data shading applies) */
+  --nbhd-hover: #ded8c7; /* Neighborhood fill under the cursor */
+  --hover-btn: #e1ecec; /* Button hover */
+  --select: #0B7A75;   /* Outline of the selected neighborhood (vivid teal) */
+  --select-b: #7A3E9D; /* Outline of the second neighborhood when comparing (purple, unlike the teal ramp and warm tiers) */
+  --brand: #B5365A;    /* Dots for one restaurant name (distinct from the teal and purple selection outlines); each selected restaurant overrides this with its own color */
+  --panel-w: 26rem;
+
+  /* Fill the window. */
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  color: var(--ink);
+  text-align: left;
+}
+
+/* Top bar: title and subtitle */
+.sm-header {
+  flex: none;
+  padding: 0.75rem 1.25rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+  z-index: 10;
+}
+
+.sm h2 {
+  margin: 0;
+  max-width: 100ch;
+  font-size: clamp(1.15rem, 2vw, 1.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+}
+
+.sm-lede {
+  margin: 0.35rem 0 0;
+  max-width: 100ch;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* map + panel */
+.sm-stage {
+  flex: 1;
+  min-height: 0;   /* lets the panel scroll instead of stretching the page */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--panel-w);
+}
+
+/* Map */
+.sm-map {
+  position: relative;
+  overflow: hidden;
+  background: var(--land);
+}
+
+.sm-map > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* Let the map handle pan and pinch gestures */
+  touch-action: none;
+}
+
+.sm-nbhd {
+  fill: var(--nbhd);
+  stroke: none; /* outlines are drawn by .sm-edge, above the fills */
+  cursor: pointer;
+}
+
+.sm-nbhd:hover {
+  fill: var(--nbhd-hover);
+}
+
+/* Shaded by data: fills come from inline styles, so dim slightly on hover instead */
+.sm-filled:hover {
+  opacity: 0.8;
+}
+
+.sm-active-halo,
+.sm-active {
+  fill: none;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  /* Don't let the outline interfere with clicks */
+  pointer-events: none;
+}
+
+/* White halo under the teal line keeps it visible on both pale and dark fills */
+.sm-active-halo {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 5;
+}
+
+.sm-active {
+  stroke: var(--select);
+  stroke-width: 2.4;
+}
+
+.sm-active-b {
+  stroke: var(--select-b);
+}
+
+/* Neighborhood outlines, drawn above the fills */
+.sm-bounds {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.sm-edge {
+  fill: none;
+  stroke: rgba(43, 58, 70, 0.22);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+  /* Keep the outline thin no matter how far you zoom */
+  vector-effect: non-scaling-stroke;
+}
+
+/* Neighborhood view: thin white lines between shaded neighborhoods */
+.sm-bounds-nbhd .sm-edge {
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 0.7;
+}
+
+/* Legend */
+.sm-legend {
+  position: absolute;
+  z-index: 2;
+  left: 1rem;
+  bottom: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 18rem);
+  gap: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.sm-legend-group {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.sm-ramp {
+  height: 0.6rem;
+  border: 1px solid var(--rule);
+}
+
+.sm-ramp-labels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Title row with minimize button */
+.sm-legend-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sm-legend-btn {
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sm-legend-btn:hover,
+.sm-legend-closed:hover {
+  background: var(--hover-btn);
+}
+
+/* Legend when minimized */
+.sm-legend-closed {
+  position: absolute;
+  z-index: 2;
+  left: 1rem;
+  bottom: 1rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.sm-hint {
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Zoom buttons */
+.sm-zoom {
+  position: absolute;
+  z-index: 2;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sm-zoom button {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sm-zoom button:hover {
+  background: var(--hover-btn);
+}
+
+/* Neighborhood name tooltip that follows the mouse */
+.sm-tip {
+  position: absolute;
+  z-index: 3;
+  transform: translate(0.75rem, -130%);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Right panel */
+.sm-panel {
+  overflow-y: auto;
+  padding: 0 1.25rem 2rem;
+  background: var(--paper);
+  border-left: 1px solid var(--rule);
+}
+
+.sm-panel section {
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sm-panel section:last-child {
+  border-bottom: 0;
+}
+
+.sm-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.sm-note {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.sm-readout {
+  min-height: 10rem; /* keeps the sections below from jumping when a neighborhood is picked */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Key numbers in neighborhood summary */
+.sm-em {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Citywide distribution */
+.sm-dist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-dist li {
+  display: grid;
+  grid-template-columns: 1fr auto 5rem;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.sm-count {
+  text-align: right;
+  color: var(--muted);
+}
+
+/* Tier label with its color swatch */
+.sm-dist li > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.sm-swatch {
+  flex: none;
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.15rem;
+  border: 1px solid rgba(43, 58, 70, 0.25);
+}
+
+/* Matches the hatched fill used on the map for neighborhoods with too few restaurants */
+.sm-swatch-nodata {
+  background: repeating-linear-gradient(45deg, #E3E0D6 0 2px, #AEB4B6 2px 3px);
+}
+
+.sm-key {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+}
+
+/* Stacked bar: share of restaurants in each tier */
+.sm-tierbar {
+  display: flex;
+  height: 0.7rem;
+  margin: 0 0 0.6rem;
+  border-radius: 0.2rem;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+}
+
+.sm-tierbar > span {
+  display: block;
+  height: 100%;
+}
+
+/* Footnote under the map and panel */
+.sm-footer {
+  flex: none;
+  padding: 0.35rem 1.25rem;
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.sm-notice {
+  padding: 1rem;
+}
+
+/* Narrow screens: map on top, panel below */
+@media (max-width: 800px) {
+  .sm-stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 45%;
+  }
+
+  .sm-panel {
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .sm-lede {
+    font-size: 0.8rem;
+  }
+}
+
+/* Compare two neighborhoods */
+.sm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.sm-actions .sm-hint {
+  margin: 0;
+  flex-basis: 100%;
+  font-size: 0.8rem;
+}
+
+.sm-btn {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.3rem;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.sm-btn:hover {
+  background: #2f4d50;
+}
+
+/* Primary call to action: full width, larger and bolder than the other buttons, in the page's teal */
+.sm-btn-compare {
+  flex: 1 1 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.sm-btn-quiet {
+  background: #fff;
+  color: var(--ink);
+  border-color: var(--rule);
+}
+
+.sm-btn-quiet:hover {
+  background: var(--hover-btn);
+}
+
+.sm-btn:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* A / B / NYC labels, colored to match the outlines on the map */
+.sm-tag {
+  display: inline-block;
+  min-width: 1.35rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.2rem;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.sm-tag-a {
+  background: var(--select);
+}
+
+.sm-tag-b {
+  background: var(--select-b);
+}
+
+.sm-tag-city {
+  background: var(--muted);
+}
+
+.sm-who {
+  margin: 0 0 0.6rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.sm-who li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.sm-bars {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.sm-barrow {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) 2.6rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sm-barrow .sm-tierbar {
+  margin: 0;
+}
+
+.sm-barrow b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-table th,
+.sm-table td {
+  padding: 0.3rem 0;
+  border-bottom: 1px dotted var(--rule);
+  text-align: right;
+  font-weight: 400;
+}
+
+.sm-table thead th {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.sm-table tbody th {
+  text-align: left;
+}
+
+.sm-rowlabel {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.sm-table-strong th,
+.sm-table-strong td {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Counts shown beside a percentage in the table */
+.sm-count-inline {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.sm-prompt {
+  margin: 0.9rem 0 0;
+}
+
+.sm-tag-here {
+  background: var(--select);
+}
+
+/* Search box, pinned to the top of the panel */
+.sm-search {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  /* Negative margins stretch the bar to the panel's edges so the band below reads as a full-width strip */
+  margin: 0 -1.25rem;
+  padding: 0.85rem 1.25rem 0.7rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Results float over the panel instead of pushing it down */
+.sm-search-box {
+  position: relative;
+}
+
+.sm-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  z-index: 4;
+  max-height: min(26rem, calc(100dvh - 14rem));
+  overflow-y: auto;
+  padding: 0.1rem 0.65rem 0.5rem;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 0.4rem;
+  box-shadow: 0 4px 10px -2px rgba(43, 58, 70, 0.22);
+}
+
+/* The dropdown is the one scroll area and outline, so the lists inside it drop their own */
+.sm-dropdown .sm-results {
+  max-height: none;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+}
+
+.sm-dropdown .sm-result {
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+}
+
+.sm-search-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.sm-search-input:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 1px;
+}
+
+.sm-results {
+  margin: 0.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 11rem;
+  overflow-y: auto;
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+}
+
+.sm-more {
+  margin: 0.4rem 0 0;
+}
+
+/* One clickable row, used by search results and the ranking lists */
+.sm-result {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sm-results li:last-child .sm-result,
+.sm-rank li:last-child .sm-result {
+  border-bottom: 0;
+}
+
+.sm-result:hover,
+.sm-result:focus-visible {
+  background: var(--hover-btn);
+}
+
+.sm-result:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: -2px;
+}
+
+.sm-result-boro {
+  margin-left: 0.5rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.sm-result-share {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ranking lists */
+.sm-panel h4 {
+  margin: 0.9rem 0 0.35rem;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.sm-rank {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+  overflow: hidden;
+}
+
+.sm-rank .sm-result {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.sm-rank-n {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-rank-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Same color as the neighborhood on the map */
+.sm-chip {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  border: 1px solid rgba(43, 58, 70, 0.25);
+}
+/* Restaurant on the map: one dot per location */
+.sm-dot-halo,
+.sm-dot-path {
+  fill: none;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.sm-dot-halo {
+  stroke: rgba(255, 255, 255, 0.95);
+}
+
+.sm-dot-path {
+  stroke: var(--brand);
+}
+
+.sm-dot {
+  display: inline-block;
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--brand);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+/* Map shading switch, top left of the map */
+/* Map controls at the top left (above the pin canvas) */
+.sm-controls {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+/* Group labels inside the search results */
+.sm-search .sm-results-head {
+  margin: 0.6rem 0 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Restaurant pins: a canvas over the map. Pointer events pass through to the neighborhoods below. */
+.sm-pins {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.sm-pin-key {
+  display: inline-block;
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  box-sizing: border-box;
+  border: 1.5px solid #2B3A46;
+  border-radius: 50%;
+}
+
+.sm-pin-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.sm-pin-toggle:hover {
+  background: var(--hover-btn);
+}
+
+.sm-pin-toggle[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+
+.sm-pin-toggle:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* Hover card for a restaurant pin; lists every pin under the cursor when several overlap */
+.sm-tip-pin {
+  display: grid;
+  gap: 0.45rem;
+  width: max-content;
+  max-width: 17rem;
+  padding: 0.45rem 0.6rem;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+.sm-tip-row {
+  display: grid;
+  gap: 0.05rem;
+}
+
+.sm-tip-row + .sm-tip-row {
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.sm-tip-row strong {
+  font-size: 0.85rem;
+}
+
+.sm-tip-row span,
+.sm-tip-more {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.75rem;
+}
+
+.sm-tip-more {
+  font-style: italic;
+}
+
+/* ---- Interactive legend: histogram + ramp brush ---- */
+.sm-brush {
+  position: relative;
+  padding-bottom: 0.35rem; /* room for the handles to overhang the ramp */
+  cursor: pointer;
+  touch-action: none; /* dragging a handle must not scroll the page */
+  user-select: none;
+}
+
+.sm-hist {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 2.4rem;
+  margin-bottom: 2px;
+  pointer-events: none;
+}
+
+.sm-bar {
+  flex: 1;
+  border-radius: 1px 1px 0 0;
+  transition: opacity 0.15s;
+}
+
+.sm-bar-out {
+  opacity: 0.2;
+}
+
+/* The bar holding the neighborhood you are hovering */
+.sm-bar-hover {
+  outline: 2px solid var(--ink);
+  outline-offset: 0;
+}
+
+/* Washes out the part of the ramp the brush is not keeping */
+.sm-mask {
+  position: absolute;
+  bottom: 0.35rem;
+  height: calc(0.6rem + 2px); /* same height as .sm-ramp, border included */
+  background: rgba(255, 255, 255, 0.78);
+  pointer-events: none;
+}
+
+.sm-mask-lo {
+  left: 0;
+}
+
+.sm-mask-hi {
+  right: 0;
+}
+
+/* Where the hovered neighborhood sits on the ramp */
+.sm-hover-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0.35rem;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.sm-handle {
+  position: absolute;
+  bottom: 0;
+  width: 0.7rem;
+  height: 1.15rem;
+  margin-left: -0.35rem;
+  box-sizing: border-box;
+  border: 2px solid var(--ink);
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 255, 0.92);
+  cursor: ew-resize;
+}
+
+.sm-handle:hover {
+  background: var(--hover-btn);
+}
+
+.sm-handle:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+.sm-brush-readout {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-legend-reset {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sm-legend-reset:focus-visible,
+.sm-key-btn:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* The "too few restaurants" key is a toggle */
+.sm-key-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sm-key-btn:hover {
+  color: var(--ink);
+}
+
+.sm-key-off .sm-swatch {
+  opacity: 0.35;
+}
+
+/* ---- Map: legend brush and linked highlighting ---- */
+/* Outside the brush: fade the fill but keep the neighborhood clickable */
+.sm-nbhd.sm-dim {
+  fill-opacity: 0.16;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sm-nbhd {
+    transition: fill-opacity 0.2s ease;
+  }
+}
+
+/* Hover outline: dark slate, so it never reads as the teal selection or the purple comparison */
+.sm-hover-halo,
+.sm-hover {
+  fill: none;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.sm-hover-halo {
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 4.5;
+}
+
+.sm-hover {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+
+/* A list row whose neighborhood is under the cursor on the map */
+.sm-result.sm-linked {
+  background: var(--hover-btn);
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+/* ---- Compare view: chains in common ---- */
+.sm-shared {
+  margin-top: 1rem;
+}
+
+/* One bar: chain brands only in A, in both, only in B (flex-grow carries the counts) */
+.sm-venn {
+  display: flex;
+  gap: 2px;
+  height: 0.9rem;
+}
+
+.sm-venn > span {
+  min-width: 3px;
+  border-radius: 0.15rem;
+}
+
+.sm-venn-a {
+  background: var(--select);
+}
+
+.sm-venn-both {
+  background: #8fa0a8;
+}
+
+.sm-venn-b {
+  background: var(--select-b);
+}
+
+.sm-venn-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-venn-key > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Mirrored bars: count | A bar | chain name | B bar | count */
+.sm-sc {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sm-sc-row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) 7.5rem minmax(0, 1fr) 1.5rem 2rem;
+  align-items: center;
+  column-gap: 0.35rem;
+  padding: 0.22rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.82rem;
+}
+
+.sm-sc-n {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.sm-sc-track {
+  display: flex;
+  height: 0.7rem;
+}
+
+.sm-sc-track-a {
+  justify-content: flex-end;
+}
+
+.sm-sc-track i {
+  display: block;
+  height: 100%;
+}
+
+.sm-sc-track-a i {
+  background: var(--select);
+  border-radius: 0.15rem 0 0 0.15rem;
+}
+
+.sm-sc-track-b i {
+  background: var(--select-b);
+  border-radius: 0 0.15rem 0.15rem 0;
+}
+
+.sm-sc-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--muted);
+}
+
+.sm-sc-name .sm-chip {
+  flex: none;
+}
+
+.sm-sc-name > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chains found in both neighborhoods stand out */
+.sm-sc-both .sm-sc-name {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.sm-sc-legend {
+  border-bottom: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.sm-sc-lg-a {
+  text-align: right;
+}
+
+.sm-sc-lg-mid {
+  text-align: center;
+  font-style: italic;
+}
+
+/* Combined locations in A and B: the number the list is sorted by */
+.sm-sc-total {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sm-sc-legend .sm-sc-total {
+  color: var(--muted);
+  font-weight: 400;
+}
+/* Up to three restaurants on the map: one chip each, colored like its dots */
+.sm-picked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.sm-picked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.15rem 0.25rem 0.15rem 0.55rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 0.85rem;
+}
+
+.sm-picked-chip button {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sm-picked-chip button:hover {
+  background: var(--hover-btn);
+  color: var(--ink);
+}
+
+.sm-picked-chip button:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 1px;
+}
+
+.sm-panel h3 .sm-dot {
+  margin-right: 0.15rem;
+  vertical-align: -0.05em;
+}
+
+.sm-dot-tip {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.35rem;
+  border-width: 1.5px;
+}
+/* Equal-width tabs, used by the legend's "Map colors" control and by the panel's view switchers. The picked tab is dark, tinted and underlined. */
+.sm-seg,
+.sm-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--rule);
+}
+
+.sm-seg button,
+.sm-tabs button {
+  margin-bottom: -1px;
+  padding: 0.4rem 0.2rem 0.45rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sm-seg button:hover,
+.sm-tabs button:hover {
+  background: var(--hover-btn);
+  color: var(--ink);
+}
+
+.sm-seg button[aria-pressed='true'],
+.sm-tabs button[aria-pressed='true'] {
+  border-bottom-color: var(--accent);
+  background: var(--hover-btn);
+  color: var(--ink);
+}
+
+.sm-seg button:focus-visible,
+.sm-tabs button:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: -2px;
+}
+
+/* "Most similar chain mix" lists in the selected-neighborhood panel */
+.sm-similar h4 {
+  margin: 0.9rem 0 0.35rem;
+}
+
+/* Panel tabs sit under the headline and are as many columns as there are tabs */
+.sm-tabs {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0.9rem 0 0.4rem;
+}
+
+/* Selected neighborhood / comparison: the header sticks to the top of the scrolling panel */
+.sm-panel section.sm-sel {
+  padding-top: 0;
+}
+
+.sm-sel-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 -1.25rem 0.8rem;
+  padding: 0.75rem 1.25rem 0.7rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.sm-sel-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.sm-sel-title h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.sm-sel-boro {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.sm-sel-head .sm-actions {
+  margin-top: 0.5rem;
+}
+
+/* Headline number for the selected neighborhood */
+.sm-stat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.2rem 1rem;
+  margin-top: 0.8rem;
+}
+
+.sm-stat-main {
+  display: grid;
+  max-width: 7.5rem;
+  line-height: 1.15;
+}
+
+.sm-stat-main b {
+  color: var(--accent);
+  font-size: 2.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-stat-main span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.sm-stat-side {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Small key under the tier bars */
+.sm-tierkey {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.8rem;
+  margin: 0.4rem 0 0.2rem;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.sm-tierkey .sm-swatch {
+  margin-right: 0.3rem;
+}
+
+/* "Show counts" and "How is it calculated?" disclosures */
+.sm-details {
+  margin: 0.6rem 0 0;
+}
+
+.sm-details summary {
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.sm-details summary:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+.sm-details[open] summary {
+  margin-bottom: 0.5rem;
+}
+/* ---- Top-left of the map: the color-by card, with the restaurant-pin toggle stacked under it ---- */
+.sm-topleft {
+  position: absolute;
+  z-index: 2;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: min(24rem, calc(100% - 2rem));
+}
+
+.sm-colorby {
+  display: grid;
+  gap: 0.4rem;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.6rem 0.75rem 0.65rem;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.sm-colorby-label {
+  color: var(--muted);
+}
+
+.sm-colorby-sim {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.sm-colorby .sm-seg {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.sm-colorby .sm-seg button {
+  padding: 0.35rem 0.1rem 0.4rem;
+  font-size: 0.78rem;
+}
+
+/* Legend ramp without the range filter: just the bar and the hover tick */
+.sm-brush-lite {
+  padding-bottom: 0;
+  cursor: default;
+}
+
+.sm-brush-lite .sm-hover-tick {
+  bottom: 0;
+}
+
+/* ---- "Chains here" list in the neighborhood overview ---- */
+.sm-top-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+  overflow: hidden;
+}
+
+.sm-top-list li + li {
+  border-top: 1px solid var(--rule);
+}
+
+.sm-top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sm-top-row:hover:not(:disabled) {
+  background: var(--hover-btn);
+}
+
+.sm-top-row:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sm-top-row:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: -2px;
+}
+
+.sm-top-name {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.sm-top-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sm-top-n {
+  min-width: 5.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ==== Alternate views: a view bar over the left side, then one view at a time ==== */
+.sm-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sm-viewbar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  padding: 0 1rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Same look as the panel tabs, sized to their labels and sitting on the bar's bottom rule */
+.sm-tabs.sm-viewtabs {
+  grid-auto-columns: max-content;
+  margin: 0;
+  border-bottom: 0;
+}
+
+.sm-viewtabs button {
+  padding: 0.55rem 0.8rem 0.5rem;
+}
+
+.sm-viewbar-blurb {
+  flex: 1 1 14rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* "12 neighborhoods picked on the plot ×": visible from every view, so a dimmed map always says why */
+.sm-group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.25rem 0.15rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 1rem;
+  background: var(--hover-btn);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.sm-group-chip button {
+  width: 1.3rem;
+  height: 1.3rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sm-group-chip button:hover {
+  background: #fff;
+}
+
+.sm-group-chip button:focus-visible {
+  outline: 2px solid var(--select);
+}
+
+.sm-viewarea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* The map fills the view area and stays mounted; the other views cover it */
+.sm-viewarea > .sm-map {
+  position: absolute;
+  inset: 0;
+}
+
+.sm-altview {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+/* ---- Tiers side by side ---- */
+.sm-tiergrid {
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.sm-tier {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0.45rem 0.6rem 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+  background: var(--land);
+}
+
+.sm-tier-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.sm-tier-head .sm-legend-reset {
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.sm-tier svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Thin white edges between neighborhoods, the same as the main map */
+.sm-tier .sm-nbhd {
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.sm-tier-key {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-tier-key i {
+  height: 0.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.15rem;
+}
+
+/* One tier per line in the hover card: chip, label, share */
+.sm-tip-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sm-tip-line b {
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-tip-line .sm-chip {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ---- Makeup plot ---- */
+.sm-plot {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(16rem, 36%, 28rem);
+}
+
+.sm-plot-main {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.sm-plot-main > svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.sm-plot-frame {
+  fill: #fbfcfc;
+  stroke: var(--rule);
+}
+
+.sm-plot-zero {
+  stroke: var(--rule);
+  stroke-dasharray: 3 4;
+}
+
+.sm-plot-axis text {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.sm-plot-axis .sm-plot-axis-cap {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.sm-pt {
+  fill-opacity: 0.8;
+  stroke: #fff;
+  stroke-width: 0.8;
+  cursor: pointer;
+}
+
+.sm-pt:hover {
+  fill-opacity: 1;
+}
+
+.sm-pt-dim {
+  fill-opacity: 0.15;
+  stroke-opacity: 0.3;
+}
+
+.sm-plot-rings circle {
+  fill: none;
+  pointer-events: none;
+}
+
+.sm-ring-hover {
+  stroke: var(--ink);
+  stroke-width: 1.8;
+}
+
+.sm-ring-active {
+  stroke: var(--select);
+  stroke-width: 2.4;
+}
+
+.sm-ring-b {
+  stroke: var(--select-b);
+}
+
+/* Name labels with a white outline so they read over dots */
+.sm-plot-labels text {
+  fill: var(--ink);
+  font-size: 11px;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.sm-plot-labels .sm-plot-label-sel {
+  font-weight: 700;
+}
+
+/* d3 brush box, in the accent color */
+.sm-plot-brush .selection {
+  fill: var(--accent);
+  fill-opacity: 0.1;
+  stroke: var(--accent);
+  stroke-dasharray: 4 3;
+}
+
+.sm-plot-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding: 0.75rem;
+  border-left: 1px solid var(--rule);
+  font-size: 0.8rem;
+}
+
+.sm-plot-side > .sm-hint {
+  margin: 0;
+}
+
+.sm-plot-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.6rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.35rem;
+}
+
+.sm-plot-card .sm-seg {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sm-plot-card .sm-seg button {
+  font-size: 0.78rem;
+}
+
+.sm-plot-keytitle {
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.sm-borokey {
+  flex-direction: column;
+  margin: 0.2rem 0;
+}
+
+.sm-borokey li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Locator map: plotted neighborhoods in pale teal, the picked group dark, the rest blank. It takes all the key's spare height. */
+.sm-plot-card-map {
+  flex: 1 1 14rem;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 14rem;
+}
+
+.sm-locator {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background: var(--land);
+  border-radius: 0.25rem;
+}
+
+.sm-loc,
+.sm-loc-on {
+  stroke: #fff;
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.sm-loc {
+  fill: #c9d8d6;
+}
+
+.sm-loc-off {
+  fill: #ebe8df;
+}
+
+.sm-loc-on {
+  fill: var(--accent);
+}
+
+@media (max-width: 800px) {
+  .sm-viewbar-blurb {
+    display: none;
+  }
+
+  .sm-viewtabs button {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.8rem;
+  }
+
+  .sm-tiergrid {
+    gap: 0.4rem;
+    padding: 0.4rem;
+  }
+
+  .sm-tier-head .sm-legend-reset {
+    display: none;
+  }
+
+  /* Phones: the plot keeps the space, the key scrolls below it */
+  .sm-plot {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .sm-plot-side {
+    max-height: 9rem;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .sm-locator {
+    display: none;
+  }
+}
+
+/* ==== Assignments sidebar toggle ==== */
+.sm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sm-header-text {
+  min-width: 0;
+}
+
+.sm-sidebar-toggle {
+  flex: none;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sm-sidebar-toggle:hover {
+  background: var(--hover-btn);
+}
+
+.sm-sidebar-toggle:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+
+/* ==== Resizable side panel ==== */
+.sm-stage {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) var(--panel-w);
+}
+
+/* Sits on the panel's left edge: a wide invisible grab area with a thin line that darkens on hover and focus */
+.sm-divider {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  bottom: 0;
+  right: var(--panel-w);
+  width: 0.9rem;
+  transform: translateX(50%);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.sm-divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 1px);
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.sm-divider:hover::after,
+.sm-divider:focus-visible::after,
+.sm-divider:active::after {
+  background: var(--select);
+}
+
+.sm-divider:focus-visible {
+  outline: none;
+}
+
+@media (max-width: 800px) {
+  /* Stacked layout: the panel is below the map, so there is nothing to drag */
+  .sm-divider {
+    display: none;
+  }
+
+  .sm-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Header text fills the row up to the toggle button, instead of wrapping at a fixed width */
+.sm-header-text {
+  flex: 1 1 auto;
+}
+
+.sm-header .sm-lede,
+.sm-header h2 {
+  max-width: none;
+}
+
+/* Header layout: the title and button share the first row; the question spans the whole width below, so the button never narrows it */
+.sm-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1rem;
+  align-items: start;
+}
+
+.sm-header-text {
+  display: contents;
+}
+
+.sm-header h2 {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.sm-header .sm-sidebar-toggle {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.sm-header .sm-lede {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
