@@ -9,6 +9,7 @@ import { SecondVersion } from './week-07/SecondVersion';
 import { IterateProject } from './week-08/IterateProject';
 import { Week10Interaction } from './week-10/Week10Interaction';
 import { NextIteration } from './week-11/NextIteration';
+import { VizHub } from './week-12/VizHub';
 
 export interface Assignment {
   id: string;
@@ -66,6 +67,11 @@ export const assignments: Assignment[] = [
     id: '11',
     name: 'Week 11',
     component: NextIteration,
+  },
+  {
+    id: '12',
+    name: 'Week 12',
+    component: VizHub,
   }
 ];
 
