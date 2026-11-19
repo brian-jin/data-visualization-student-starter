@@ -1197,10 +1197,17 @@
 .sf-lens-read b {
   color: var(--ink);
 }
-.sf-gridtools {
+/* The heading and the zoom buttons share one row, the buttons at the right end and level with the heading, so the maps get the height */
+.sf-tiergrid-head {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.sf-gridtools {
+  flex: none;
+  display: flex;
+  align-items: center;
 }
 .sf-zoom.is-corner {
   bottom: var(--s-2);
@@ -1236,7 +1243,7 @@
 }
 .sf-tiergrid {
   flex: 1 1 0;
-  min-height: 420px;
+  min-height: 520px; /* the grid takes all the height left over, and on a short window never gets squashed below this */
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
@@ -1569,9 +1576,22 @@
   stroke: var(--ink);
   stroke-width: 1.5px;
 }
-.sf-bar.is-now .sf-bar-frame {
+/* The outline of the year being shown is one shape that travels, so it is not drawn on each bar */
+.sf-bar-select {
+  fill: none;
   stroke: var(--accent);
   stroke-width: 2.5px;
+  vector-effect: non-scaling-stroke; /* the outline is stretched to each bar's height, its line is not */
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  transition: transform 520ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-bar-select {
+    transition: none;
+  }
 }
 .sf-gone-bg {
   fill: var(--paper);
@@ -3626,4 +3646,70 @@
 /* Viewing an earlier year, the line under a figure compares it with 2026, in the teal the Findings charts use for "fell" */
 .sf-kpi-delta.is-vs {
   color: var(--ramp-3);
+}
+
+/* Bars that fill like progress bars slide to their new length when the year (or anything else behind them) changes. Their rows keep
+   the same keys from one year to the next, so they are moved, not redrawn. */
+.sf-swatch-bar i,
+.sf-bar-track i,
+.sf-cellbar i,
+.sf-mirror-track i,
+.sf-group-track i {
+  transition: width 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.sf-tierbar i {
+  transition: flex-grow 700ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-swatch-bar i,
+  .sf-bar-track i,
+  .sf-cellbar i,
+  .sf-mirror-track i,
+  .sf-group-track i,
+  .sf-tierbar i,
+  .sf-kpi-split i {
+    transition: none;
+  }
+}
+
+/* Tables in the panel have to fit its width. The neighborhood sits under a restaurant's name, and the Ranking bars are shorter. */
+.sf-rhood {
+  display: block;
+  font-size: var(--t-xs);
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.sf-rtable thead .sf-subsort {
+  display: inline-flex;
+  margin-left: var(--s-3);
+  font-weight: 500;
+}
+.sf-ranking .sf-cellbar {
+  width: 26px;
+  margin-right: 6px;
+}
+/* Column headings may wrap onto a second line, so a table is never wider than the panel because of its headings */
+.sf-ranking .sf-table thead th,
+.sf-rtable thead th {
+  white-space: normal;
+}
+.sf-rtable thead .sf-subsort {
+  display: flex;
+  margin-left: 0;
+}
+.sf-ranking .sf-table thead button {
+  text-align: left;
+  line-height: 1.2;
+}
+/* Long cuisine names (Bakery Products/Desserts) may break anywhere; the Chain column keeps its word whole */
+.sf-rtable td:nth-child(2) {
+  overflow-wrap: anywhere;
+}
+.sf-rtable td:last-child {
+  white-space: nowrap;
+}
+
+/* Under the four maps one line is enough for the neighborhood's figures, most of the time */
+.sf-tiergrid + .sf-lens-read {
+  min-height: 2.9em;
 }

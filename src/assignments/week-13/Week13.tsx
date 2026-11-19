@@ -303,6 +303,7 @@ function Explorer({
     pin,
     tab: sp.get('tab'),
     year: shownYear,
+    wantYear: year ?? LATEST_YEAR,
     act,
   };
   const meta = modeMeta(mode, sel, simKind);

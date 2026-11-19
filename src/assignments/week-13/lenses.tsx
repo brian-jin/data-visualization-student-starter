@@ -124,23 +124,22 @@ export function TierGrid({ ctx, onOpen }: { ctx: Ctx; onOpen: (m: Mode) => void 
   };
   return (
     <>
-      <header className="sf-lens-head">
+      <header className="sf-lens-head sf-tiergrid-head">
         <h2>Four tiers side by side{ctx.year !== 2026 ? `, ${ctx.year}` : ''}</h2>
-        <p>The same map shaded four ways. Each map has its own five bands, so compare where the dark areas fall, not the shades across maps.</p>
-      </header>
-      <div className="sf-gridtools">
-        <div className="sf-zoom is-inline" role="group" aria-label="Zoom all four maps">
-          <button type="button" onClick={() => zoomBy(1.6)} aria-label="Zoom in" title="Zoom in">
-            <Icon name="plus" />
-          </button>
-          <button type="button" onClick={() => zoomBy(1 / 1.6)} aria-label="Zoom out" title="Zoom out">
-            <Icon name="minus" />
-          </button>
-          <button type="button" onClick={resetZoom} aria-label="Reset zoom" title="Reset zoom">
-            <Icon name="reset" />
-          </button>
+        <div className="sf-gridtools">
+          <div className="sf-zoom is-inline" role="group" aria-label="Zoom all four maps">
+            <button type="button" onClick={() => zoomBy(1.6)} aria-label="Zoom in" title="Zoom in">
+              <Icon name="plus" />
+            </button>
+            <button type="button" onClick={() => zoomBy(1 / 1.6)} aria-label="Zoom out" title="Zoom out">
+              <Icon name="minus" />
+            </button>
+            <button type="button" onClick={resetZoom} aria-label="Reset zoom" title="Reset zoom">
+              <Icon name="reset" />
+            </button>
+          </div>
         </div>
-      </div>
+      </header>
       <div className="sf-tiergrid" ref={gridRef}>
         {maps.map((m) => {
           const br = m.breaks.map((x) => Math.round(x * 100));
@@ -601,6 +600,16 @@ function YearTotals({ ctx }: { ctx: Ctx }) {
                 </g>
               );
             })}
+            {/* One outline for the year asked for. It slides from bar to bar and changes height with them, instead of switching bars.
+                It moves with transform only, so it keeps gliding while the page recounts the new year. It follows the year asked for,
+                not the year shown, so it sets off at once. */}
+            {YEARS.includes(ctx.wantYear) &&
+              (() => {
+                const i = YEARS.indexOf(ctx.wantYear);
+                const tall = Y(0) - Y(Math.max(...whole));
+                const h = Y(0) - Y(whole[i]);
+                return <rect className="sf-bar-select" style={{ width: bw, height: tall, transform: `translate(${X(i) - bw / 2}px, ${Y(0) - tall}px) scaleY(${tall ? h / tall : 1})` }} />;
+              })()}
           </svg>
         )}
         {t && tip && (

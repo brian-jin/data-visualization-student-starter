@@ -158,9 +158,21 @@ export function RestaurantList({ data, scope, pin, onPin, onList }: { data: Data
           <caption className="sf-sr">Restaurants in {scope.name}. Select a row to highlight it on the map.</caption>
           <thead>
             <tr>
-              {head('name', 'Name')}
+              {showHood ? (
+                <th scope="col" aria-sort={sort.key === 'name' || sort.key === 'hood' ? (sort.desc ? 'descending' : 'ascending') : undefined}>
+                  <button type="button" onClick={() => sortBy('name')}>
+                    Name
+                    <span className={`sf-sort${sort.key === 'name' ? (sort.desc ? ' is-desc' : ' is-asc') : ''}`} aria-hidden="true" />
+                  </button>
+                  <button type="button" className="sf-subsort" onClick={() => sortBy('hood')}>
+                    Neighborhood
+                    <span className={`sf-sort${sort.key === 'hood' ? (sort.desc ? ' is-desc' : ' is-asc') : ''}`} aria-hidden="true" />
+                  </button>
+                </th>
+              ) : (
+                head('name', 'Name')
+              )}
               {head('cuisine', 'Cuisine')}
-              {showHood && head('hood', 'Neighborhood')}
               {head('chain', 'Chain')}
             </tr>
           </thead>
@@ -173,9 +185,9 @@ export function RestaurantList({ data, scope, pin, onPin, onList }: { data: Data
                     <button type="button" aria-pressed={on} title={on ? 'Highlighted on the map. Select to clear.' : 'Highlight on the map'}>
                       {r.place.name}
                     </button>
+                    {showHood && <span className="sf-rhood">{data.byId.get(r.place.nbhd)?.name ?? ''}</span>}
                   </th>
-                  <td>{r.place.cuisine}</td>
-                  {showHood && <td>{data.byId.get(r.place.nbhd)?.name ?? ''}</td>}
+                  <td>{r.place.cuisine.replace(/\//g, '/​')}</td>
                   <td className={r.tier === 'independent' ? 'is-quiet' : undefined}>{CHAIN[r.tier]}</td>
                 </tr>
               );

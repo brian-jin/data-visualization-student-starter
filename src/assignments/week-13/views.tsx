@@ -49,6 +49,7 @@ export interface Ctx {
   pin: Place | null; // the restaurant picked in the Restaurants tab
   tab: string | null;
   year: number; // the year every view is showing
+  wantYear: number; // the year most recently asked for. It runs ahead of `year` while that year is being recounted
   act: Actions;
 }
 
