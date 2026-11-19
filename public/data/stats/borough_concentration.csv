@@ -1,0 +1,7 @@
+borough,chain_locations,chain_brands,top_brand,top_brand_share,top3_share,top10_share,herfindahl,brands_citywide_in_borough,share_from_five_borough_brands
+bronx,666,170,Dunkin,0.1381,0.2808,0.482,0.0391,,0.6622
+brooklyn,1460,451,Dunkin,0.0897,0.1555,0.2815,0.0148,,0.4021
+manhattan,2968,607,Dunkin,0.0559,0.128,0.219,0.0096,,0.2557
+queens,1331,363,Dunkin,0.1285,0.1931,0.3306,0.0242,,0.4914
+staten-island,245,95,Dunkin,0.1755,0.2816,0.4776,0.0465,,0.6653
+nyc,6670,787,Dunkin,0.0904,0.1573,0.2735,0.0142,39.0,

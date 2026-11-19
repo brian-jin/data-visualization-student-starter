@@ -1,0 +1,26 @@
+{
+  "_note": "Canonical brand -> other spellings of it. Names are normalized before matching (case, punctuation, LLC/INC, store numbers ignored). A variant matches exactly or as a prefix (BLANK STREET also matches BLANK STREET COFFEE HUDSON). Edit, rerun, and check data/review/brand_review.csv.",
+  "Blank Street": [
+    "Blank Street Coffee",
+    "Blank St"
+  ],
+  "Little Ruby's": [
+    "Little Ruby",
+    "Little Rubys Cafe"
+  ],
+  "7th Street Burger": [
+    "Seventh Street Burger",
+    "7th St Burger"
+  ],
+  "Pop Up Bagels": [
+    "Popup Bagels",
+    "Pop Up Bagel"
+  ],
+  "Starbucks": [
+    "Starbucks Coffee"
+  ],
+  "Dunkin": [
+    "Dunkin Donuts",
+    "Dunkin Baskin Robbins"
+  ]
+}

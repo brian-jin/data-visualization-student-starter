@@ -1,0 +1,151 @@
+borough,tier,rank,brand,locations,neighborhoods,share_of_tier_in_borough
+bronx,mini,1,Kennedy Chicken & Pizza,6,6,0.0328
+bronx,mini,2,National Bakery,5,4,0.0273
+bronx,mini,3,Jimbo's Hamburger Palace,5,5,0.0273
+bronx,mini,4,Los Munchies,5,5,0.0273
+bronx,mini,5,Caridad Restaurant,4,4,0.0219
+bronx,mini,6,Great Wall,4,3,0.0219
+bronx,mini,7,El Valle Restaurant,4,4,0.0219
+bronx,mini,8,Kennedy Chicken,4,4,0.0219
+bronx,mini,9,China Wok,4,4,0.0219
+bronx,mini,10,Foo Hing Kitchen,3,2,0.0164
+bronx,mid,1,Little Caesars,12,12,0.0976
+bronx,mid,2,Golden Krust Caribbean Bakery & Grill,11,9,0.0894
+bronx,mid,3,Texas Chicken & Burgers,8,7,0.065
+bronx,mid,4,Ihop,7,7,0.0569
+bronx,mid,5,Pizza Hut,7,7,0.0569
+bronx,mid,6,White Castle,7,7,0.0569
+bronx,mid,7,Kfc,7,7,0.0569
+bronx,mid,8,Teriyaki One,6,6,0.0488
+bronx,mid,9,Auntie Anne's Pretzels,5,5,0.0407
+bronx,mid,10,Checkers,4,3,0.0325
+bronx,big,1,Dunkin,92,46,0.2556
+bronx,big,2,Kennedy Fried Chicken,55,26,0.1528
+bronx,big,3,Mcdonald's,40,30,0.1111
+bronx,big,4,Popeyes,29,26,0.0806
+bronx,big,5,Subway,24,18,0.0667
+bronx,big,6,Domino's,19,17,0.0528
+bronx,big,7,Burger King,17,15,0.0472
+bronx,big,8,Taco Bell,17,16,0.0472
+bronx,big,9,Chipotle Mexican Grill,16,12,0.0444
+bronx,big,10,Starbucks,12,9,0.0333
+brooklyn,mini,1,98k Chicken & Burgers,6,4,0.0092
+brooklyn,mini,2,Bed Stuy Fish Fry,5,5,0.0077
+brooklyn,mini,3,Pure Green,5,5,0.0077
+brooklyn,mini,4,Poetica Coffee,5,4,0.0077
+brooklyn,mini,5,Taste Of China,5,5,0.0077
+brooklyn,mini,6,Shashlik House,4,3,0.0061
+brooklyn,mini,7,Perizia Kosher Pizza,4,2,0.0061
+brooklyn,mini,8,Table 87,4,3,0.0061
+brooklyn,mini,9,Banhmigos,4,4,0.0061
+brooklyn,mini,10,Pep Bake House & Coffee Shop,4,3,0.0061
+brooklyn,mid,1,Crown Fried Chicken,21,14,0.0595
+brooklyn,mid,2,Golden Krust Caribbean Bakery & Grill,15,12,0.0425
+brooklyn,mid,3,Texas Chicken & Burgers,12,10,0.034
+brooklyn,mid,4,Hungry Ghost,10,5,0.0283
+brooklyn,mid,5,Gong Cha,9,9,0.0255
+brooklyn,mid,6,Baya Bar,9,8,0.0255
+brooklyn,mid,7,Van Leeuwen Ice Cream,8,7,0.0227
+brooklyn,mid,8,Wonder,8,8,0.0227
+brooklyn,mid,9,Paris Baguette,8,8,0.0227
+brooklyn,mid,10,Blank Street Coffee,7,5,0.0198
+brooklyn,big,1,Dunkin,131,49,0.2873
+brooklyn,big,2,Mcdonald's,48,29,0.1053
+brooklyn,big,3,Popeyes,48,32,0.1053
+brooklyn,big,4,Starbucks,40,28,0.0877
+brooklyn,big,5,Subway,33,22,0.0724
+brooklyn,big,6,Chipotle Mexican Grill,31,24,0.068
+brooklyn,big,7,Domino's,24,20,0.0526
+brooklyn,big,8,Papa John's,18,17,0.0395
+brooklyn,big,9,Burger King,17,15,0.0373
+brooklyn,big,10,Taco Bell,16,15,0.0351
+manhattan,mini,1,Ground Central Coffee Company,9,6,0.0065
+manhattan,mini,2,Convene,9,6,0.0065
+manhattan,mini,3,Fresh & Co,8,7,0.0058
+manhattan,mini,4,La Pecora Bianca,8,8,0.0058
+manhattan,mini,5,Popup Bagels,8,8,0.0058
+manhattan,mini,6,Magnolia Bakery,8,8,0.0058
+manhattan,mini,7,Matchaful,7,7,0.005
+manhattan,mini,8,Miznon,7,6,0.005
+manhattan,mini,9,Pura Vida Miami,7,7,0.005
+manhattan,mini,10,Bondi Sushi,7,7,0.005
+manhattan,mid,1,Pret A Manger,36,15,0.0368
+manhattan,mid,2,Just Salad,35,22,0.0358
+manhattan,mid,3,Blank Street Coffee,33,21,0.0338
+manhattan,mid,4,Sweetgreen,32,23,0.0328
+manhattan,mid,5,Joe & The Juice,31,20,0.0317
+manhattan,mid,6,Van Leeuwen Ice Cream,26,23,0.0266
+manhattan,mid,7,Naya,26,15,0.0266
+manhattan,mid,8,Le Pain Quotidien,25,18,0.0256
+manhattan,mid,9,Chop't,24,18,0.0246
+manhattan,mid,10,Earthbar,22,17,0.0225
+manhattan,big,1,Dunkin,166,45,0.2767
+manhattan,big,2,Starbucks,154,45,0.2567
+manhattan,big,3,Chipotle Mexican Grill,60,32,0.1
+manhattan,big,4,Subway,57,30,0.095
+manhattan,big,5,Mcdonald's,46,32,0.0767
+manhattan,big,6,Popeyes,27,22,0.045
+manhattan,big,7,Taco Bell,25,18,0.0417
+manhattan,big,8,Domino's,19,18,0.0317
+manhattan,big,9,Burger King,11,7,0.0183
+manhattan,big,10,Wendy's,11,9,0.0183
+queens,mini,1,T-swirl Crepe,6,6,0.0119
+queens,mini,2,U Best Bakery,6,2,0.0119
+queens,mini,3,El Gallo Negro,5,5,0.0099
+queens,mini,4,Mad For Chicken,5,5,0.0099
+queens,mini,5,Mama's Empanadas,5,4,0.0099
+queens,mini,6,Don Pollo,5,5,0.0099
+queens,mini,7,El Encebollado De Victor,5,3,0.0099
+queens,mini,8,La Gitana,4,3,0.008
+queens,mini,9,Kyuramen,4,4,0.008
+queens,mini,10,Moa Coffee,4,3,0.008
+queens,mid,1,Paris Baguette,16,14,0.0488
+queens,mid,2,Fay Da Bakery,12,6,0.0366
+queens,mid,3,Kfc,12,11,0.0366
+queens,mid,4,Texas Chicken & Burgers,12,10,0.0366
+queens,mid,5,Crown Fried Chicken,11,8,0.0335
+queens,mid,6,Kung Fu Tea,10,9,0.0305
+queens,mid,7,Little Caesars,10,10,0.0305
+queens,mid,8,Pizza Hut,9,9,0.0274
+queens,mid,9,Homemade Taqueria,9,8,0.0274
+queens,mid,10,Guac Time,8,8,0.0244
+queens,big,1,Dunkin,171,65,0.342
+queens,big,2,Mcdonald's,43,34,0.086
+queens,big,3,Starbucks,43,32,0.086
+queens,big,4,Subway,42,32,0.084
+queens,big,5,Popeyes,40,29,0.08
+queens,big,6,Chipotle Mexican Grill,21,18,0.042
+queens,big,7,Domino's,21,20,0.042
+queens,big,8,Taco Bell,20,18,0.04
+queens,big,9,Carvel,20,18,0.04
+queens,big,10,Burger King,19,19,0.038
+staten-island,mini,1,Tropical Smoothie Cafe,4,4,0.0606
+staten-island,mini,2,Better Gourmet Health Kitchen,3,3,0.0455
+staten-island,mini,3,Ralph's Ices,3,3,0.0455
+staten-island,mini,4,Country Donuts,3,2,0.0455
+staten-island,mini,5,Avocado Sushi,3,3,0.0455
+staten-island,mini,6,Filoncino Cafe,3,3,0.0455
+staten-island,mini,7,8-bit Bites,2,2,0.0303
+staten-island,mini,8,Pronto Pizza,2,2,0.0303
+staten-island,mini,9,Ralph's Famous Italian Ices,2,2,0.0303
+staten-island,mini,10,Tim Hortons,2,2,0.0303
+staten-island,mid,1,Baya Bar,4,4,0.0755
+staten-island,mid,2,Applebees Neighborhood Grill And Bar,3,3,0.0566
+staten-island,mid,3,Jersey Mike's,3,3,0.0566
+staten-island,mid,4,Paris Baguette,3,3,0.0566
+staten-island,mid,5,Shake Shack,3,3,0.0566
+staten-island,mid,6,Uncle Louie G's,3,3,0.0566
+staten-island,mid,7,Crumbl,2,2,0.0377
+staten-island,mid,8,Cold Stone Creamery,2,2,0.0377
+staten-island,mid,9,Wonder,2,2,0.0377
+staten-island,mid,10,Panera Bread,2,2,0.0377
+staten-island,big,1,Dunkin,43,27,0.3413
+staten-island,big,2,Starbucks,13,12,0.1032
+staten-island,big,3,Subway,13,13,0.1032
+staten-island,big,4,Carvel,11,11,0.0873
+staten-island,big,5,Domino's,7,7,0.0556
+staten-island,big,6,Wendy's,7,7,0.0556
+staten-island,big,7,Mcdonald's,7,7,0.0556
+staten-island,big,8,Taco Bell,6,5,0.0476
+staten-island,big,9,Burger King,5,5,0.0397
+staten-island,big,10,Popeyes,5,4,0.0397
