@@ -156,18 +156,18 @@ interface MetricInfo {
 }
 const METRICS: MetricInfo[] = [
   { key: 'all', label: 'All chains', unit: 'chains', title: 'Share of restaurants that are chains', phrase: 'chain share', most: 'Most chains', fewest: 'Fewest chains' },
-  { key: 'mini_chain', label: 'Mini', unit: 'mini chains', title: 'Share of restaurants that are mini chains (2–9 locations)', phrase: 'mini-chain share', most: 'Most mini chains', fewest: 'Fewest mini chains' },
-  { key: 'chain', label: 'Mid-size', unit: 'mid-size chains', title: 'Share of restaurants that are mid-size chains (10–29 locations)', phrase: 'mid-size-chain share', most: 'Most mid-size chains', fewest: 'Fewest mid-size chains' },
-  { key: 'big_chain', label: 'Big', unit: 'big chains', title: 'Share of restaurants that are big chains (30+ locations)', phrase: 'big-chain share', most: 'Most big chains', fewest: 'Fewest big chains' },
+  { key: 'mini_chain', label: 'Mini', unit: 'mini chains', title: 'Share of restaurants that are mini chains (3–9 locations)', phrase: 'mini-chain share', most: 'Most mini chains', fewest: 'Fewest mini chains' },
+  { key: 'chain', label: 'Mid-size', unit: 'mid-size chains', title: 'Share of restaurants that are mid-size chains (10–49 locations)', phrase: 'mid-size-chain share', most: 'Most mid-size chains', fewest: 'Fewest mid-size chains' },
+  { key: 'big_chain', label: 'Big', unit: 'big chains', title: 'Share of restaurants that are big chains (50+ locations)', phrase: 'big-chain share', most: 'Most big chains', fewest: 'Fewest big chains' },
 ];
 
 const NO_DATA = 'url(#sm-nodata)'; // Hatched fill (defined in the <svg>) for neighborhoods with too few restaurants to compare
 
 const TIERS: { key: Tier; label: string }[] = [
   { key: 'independent', label: 'Independent' },
-  { key: 'mini_chain', label: 'Mini Chain (2–9)' },
-  { key: 'chain', label: 'Chain (10–29)' },
-  { key: 'big_chain', label: 'Big Chain (30+)' },
+  { key: 'mini_chain', label: 'Mini Chain (3–9)' },
+  { key: 'chain', label: 'Mid-size Chain (10–49)' },
+  { key: 'big_chain', label: 'Big Chain (50+)' },
 ];
 // Tier colors are a separate warm family on purpose: teal always means "share of chains", warm colors always mean "tier".
 const TIER_COLORS: Record<Tier, string> = {
@@ -422,7 +422,7 @@ function TopChains({
       </ul>
       <p className="sm-hint sm-more">
         {rows.total > rows.list.length ? `Showing ${rows.list.length} of ${rows.total} chains. ` : ''}
-        A chain is any name with 2+ locations citywide. Click one to see all its locations on the map.
+        A chain is any name with 3+ locations citywide. Click one to see all its locations on the map.
       </p>
     </div>
   );
@@ -457,7 +457,7 @@ function NeighborhoodView({
   );
 }
 
-// Which chain brands do two neighborhoods have in common? "Chain" here means any name with 2+ locations citywide.
+// Which chain brands do two neighborhoods have in common? "Chain" here means any name with 3+ locations citywide.
 // Top: how many chain brands are only in A, in both, only in B. Below: the biggest chains as a mirrored bar chart (A left, B right).
 function SharedChains({ a, b, brands }: { a: NbhdProps; b: NbhdProps; brands: Brand[] | null }) {
   const shared = useMemo(() => {
@@ -490,7 +490,7 @@ function SharedChains({ a, b, brands }: { a: NbhdProps; b: NbhdProps; brands: Br
   if (!shared) return <p className="sm-hint sm-prompt">Loading restaurant names…</p>;
   const { onlyA, both, onlyB, union, top, max } = shared;
   if (!union) {
-    return <p className="sm-note">Neither neighborhood has any chain brands (names with 2+ locations citywide).</p>;
+    return <p className="sm-note">Neither neighborhood has any chain brands (names with 3+ locations citywide).</p>;
   }
   return (
     <div className="sm-shared">
@@ -501,7 +501,7 @@ function SharedChains({ a, b, brands }: { a: NbhdProps; b: NbhdProps; brands: Br
       </p>
       <details className="sm-details">
         <summary>What counts as a chain brand?</summary>
-        <p className="sm-hint">Any restaurant name with 2 or more locations citywide.</p>
+        <p className="sm-hint">Any restaurant name with 3 or more locations citywide.</p>
       </details>
       <div className="sm-venn" role="img" aria-label={`Only A: ${onlyA}, in both: ${both}, only B: ${onlyB} chain brands`}>
         {onlyA > 0 && <span className="sm-venn-a" style={{ flexGrow: onlyA }} />}
@@ -846,10 +846,10 @@ const rampCssOf = (color: (v: number) => string, lo: number, hi: number) =>
 // Small-multiples structure adapted from VizHub visualization 16ab646f3d4040d2b48e4fba8fc68e61, and the shared
 // highlight across panels from 605acb8096f44828bae3a52777894459 (both MIT License).
 const TIER_PANEL_TITLE: Record<Metric, string> = {
-  all: 'All chains (2+ locations)',
-  mini_chain: 'Mini chains (2–9)',
-  chain: 'Mid-size chains (10–29)',
-  big_chain: 'Big chains (30+)',
+  all: 'All chains (3+ locations)',
+  mini_chain: 'Mini chains (3–9)',
+  chain: 'Mid-size chains (10–49)',
+  big_chain: 'Big chains (50+)',
 };
 type RampInfo = { m: MetricInfo; color: (v: number) => string; lo: number; hi: number; css: string };
 
@@ -1877,7 +1877,7 @@ export function VizHub() {
   const byId = useMemo(() => new Map((data?.features ?? []).map((f) => [f.properties.id, f.properties])), [data]);
   const brandById = useMemo(() => new Map((brands ?? []).map((b) => [b.id, b])), [brands]);
 
-  // Similarity: each neighborhood is a vector of how many locations it has of every chain brand (names with 2+ locations).
+  // Similarity: each neighborhood is a vector of how many locations it has of every chain brand (names with 3+ locations).
   // Two neighborhoods' similarity is the cosine of their vectors: 0% = no chain in common, 100% = the same mix.
   const chainNorm = useMemo(() => {
     const sq = new Map<string, number>();
