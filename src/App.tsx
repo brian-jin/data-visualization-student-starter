@@ -2,12 +2,15 @@ import { useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { assignments, assignmentsMap, defaultAssignment } from './assignments';
 
+// The assignments list on the left is kept in the code but not shown. Set this to true to bring it back.
+const SHOW_ASSIGNMENT_LIST = false;
+
 function App() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedAssignmentId = searchParams.get('example') || defaultAssignment;
   const selectedAssignment = assignmentsMap.get(selectedAssignmentId);
   const SelectedComponent = selectedAssignment?.component;
-  const hideSidebar = searchParams.has('hideSidebar');
+  const hideSidebar = !SHOW_ASSIGNMENT_LIST || searchParams.has('hideSidebar');
 
   const handleSelectAssignment = useCallback(
     (assignmentId: string) => {
@@ -27,6 +30,7 @@ function App() {
   }, [searchParams, setSearchParams]);
 
   useEffect(() => {
+    if (!SHOW_ASSIGNMENT_LIST) return; // the Escape shortcut only toggles a list that can be shown
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         toggleSidebar();
