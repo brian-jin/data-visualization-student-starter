@@ -10,6 +10,7 @@ import { IterateProject } from './week-08/IterateProject';
 import { Week10Interaction } from './week-10/Week10Interaction';
 import { NextIteration } from './week-11/NextIteration';
 import { VizHub } from './week-12/VizHub';
+import { Week13 } from './week-13/Week13';
 
 export interface Assignment {
   id: string;
@@ -72,7 +73,12 @@ export const assignments: Assignment[] = [
     id: '12',
     name: 'Week 12',
     component: VizHub,
-  }
+  },
+  {
+    id: '13',
+    name: 'Week 13',
+    component: Week13,
+  },
 ];
 
 export const assignmentsMap = new Map(assignments.map((ex) => [ex.id, ex]));
