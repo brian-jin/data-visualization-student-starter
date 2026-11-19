@@ -235,10 +235,13 @@ export function MapView({ data, classes, activeClasses, describe, selId, cmpId, 
     const minSpan = MAP_SIZE * 0.05; // a single point or tiny neighborhood still gets some context
     const dx = Math.max(b[1][0] - b[0][0], minSpan);
     const dy = Math.max(b[1][1] - b[0][1], minSpan);
-    // The whole city is allowed nearly all of the height, and a little less of the width (the controls and the panel sit beside it)
+    // The whole city is drawn a little taller than the free height. The margins around the free area are mostly sea, so the shapes still
+    // end inside the window, and the map is as large as the room allows.
     const wholeCity = roomyFit && b === cityRef.current;
-    const k = Math.min((aw * (wholeCity ? 0.92 : 0.88)) / dx, (ah * (wholeCity ? 0.97 : 0.88)) / dy);
-    const t = zoomIdentity.translate(p.left + freeW / 2 - (k * (b[0][0] + b[1][0])) / 2, p.top + freeH / 2 - (k * (b[0][1] + b[1][1])) / 2).scale(k); // centered in all the free room
+    const k = Math.min((aw * (wholeCity ? 1 : 0.88)) / dx, (ah * (wholeCity ? 1.05 : 0.88)) / dy);
+    // Centered in the free room. A whole city taller than that room is lifted so its bottom edge keeps a margin inside the window.
+    const midY = wholeCity ? Math.min(p.top + freeH / 2, h - 14 - (k * dy) / 2) : p.top + freeH / 2;
+    const t = zoomIdentity.translate(p.left + freeW / 2 - (k * (b[0][0] + b[1][0])) / 2, midY - (k * (b[0][1] + b[1][1])) / 2).scale(k);
     const s = select(svg);
     if (animate && !reducedMotion()) s.transition().duration(650).ease(easeCubicOut).call(z.transform, t);
     else s.call(z.transform, t);

@@ -37,6 +37,7 @@ export interface Ctx {
   third: Nbhd | null; // the third neighborhood when three are being compared
   picking: boolean;
   pickingThird: boolean;
+  now: Data | null; // the 2026 data, set while an earlier year is showing, for the "vs 2026" lines
   prev: Data | null; // the data as of 2022, once it has loaded. Only set while the latest year is showing, for the "since 2022" lines
   brands: Brand[];
   boro: BoroStat | null;
@@ -220,6 +221,8 @@ interface Cell {
   note: string;
   short: string; // the comparison in a few words, for the phone layout
   dist?: { min: number; max: number; median: number; marks: number[]; ends: [string, string] };
+  // A bar split into parts, for figures that are a whole divided up (brands by size, ranked of all mapped)
+  bar?: { parts: { v: number; token: string }[]; ends: [string, string] };
 }
 // A labelled range line: lowest and highest ranked neighborhood at the ends, a tick at the median, a dot per value shown
 function Dist({ d, neutral }: { d: NonNullable<Cell['dist']>; neutral: boolean }) {
@@ -237,11 +240,35 @@ function Dist({ d, neutral }: { d: NonNullable<Cell['dist']>; neutral: boolean }
     </span>
   );
 }
+function SplitBar({ b }: { b: NonNullable<Cell['bar']> }) {
+  const total = b.parts.reduce((t, p) => t + p.v, 0) || 1;
+  return (
+    <span className="sf-dist" aria-hidden="true">
+      <span className="sf-dist-end">{b.ends[0]}</span>
+      <span className="sf-dist-line sf-kpi-split">
+        {b.parts.map((p, i) => (
+          <i key={i} style={{ width: `${(p.v / total) * 100}%`, background: p.token }} />
+        ))}
+      </span>
+      <span className="sf-dist-end">{b.ends[1]}</span>
+    </span>
+  );
+}
+// Chain brands in a set, split by size: mini, mid-size, big
+const brandSplit = (brands: Brand[]) => [TIERS[1], TIERS[2], TIERS[3]].map((t) => ({ v: brands.filter((b) => b.tier === t.key).length, token: t.token }));
 const since = (now: number, then: number, unit: 'pts' | 'count') => {
   const d = unit === 'pts' ? Math.round(now * 100) - Math.round(then * 100) : Math.round(now - then);
   if (d === 0) return 'Level with 2022';
   const size = unit === 'pts' ? `${Math.abs(d)} ${Math.abs(d) === 1 ? 'pt' : 'pts'}` : num(Math.abs(d));
   return `${d > 0 ? 'Up' : 'Down'} ${size} since 2022`;
+};
+// How an earlier year's figure compares with 2026: "3 pts below 2026 (22%)"
+const against = (now: number | null | undefined, then: number | null | undefined, unit: 'pts' | 'count', fmt: (v: number) => string) => {
+  if (now == null || then == null) return undefined;
+  const d = unit === 'pts' ? Math.round(now * 100) - Math.round(then * 100) : Math.round(now - then);
+  if (d === 0) return `Level with 2026 (${fmt(then)})`;
+  const size = unit === 'pts' ? `${Math.abs(d)} ${Math.abs(d) === 1 ? 'pt' : 'pts'}` : num(Math.abs(d));
+  return `${size} ${d > 0 ? 'above' : 'below'} 2026 (${fmt(then)})`;
 };
 const signed = (d: number) => (d === 0 ? 'level with' : `${d > 0 ? '+' : '\u2212'}${Math.abs(d)} vs`);
 
@@ -267,7 +294,9 @@ function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neut
   const rankNote = `Of ${R} ranked neighborhoods. #1 has the most chains.`;
   // 2022 for the "since 2022" lines. It is estimated the same way as the year slider, so it arrives a moment after the page.
   const prev = latest ? ctx.prev : null;
+  const L = latest ? null : ctx.now; // the 2026 data, while an earlier year shows
   const simDelta = (now: number | null, was: number | null | undefined) => (now !== null && was != null ? `${since(now, was, 'pts')} (${score(was)})` : undefined);
+  const simVs = (now: number | null, then: number | null | undefined) => against(now, then, 'pts', score);
 
   if (sel && cmp) {
     const picks = [sel, cmp, ...(ctx.third ? [ctx.third] : [])];
@@ -282,10 +311,10 @@ function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neut
       sub: picks.length > 2 ? 'Comparing three neighborhoods' : 'Comparing two neighborhoods',
       neutral: false,
       cells: [
-        { label: 'Chain share', values: vals((n) => pct(n.chainShare)), note: shareNote, short: `median ${pct(c.medianShare)}`, dist: { ...dShare, marks: picks.map((n) => n.chainShare) } },
-        { label: 'Chain brands', values: vals((n) => num(n.chainBrands)), note: `City median ${c.medianChains}`, short: `median ${c.medianChains}`, dist: { ...dChains, marks: picks.map((n) => n.chainBrands) } },
-        { label: 'Similarity score', values: vals((n) => (n.simScore === null ? 'n/a' : score(n.simScore))), note: `City median ${score(c.medianSim)}`, short: `median ${score(c.medianSim)}`, dist: picks.every((n) => n.simScore !== null) ? { ...dSim, marks: picks.map((n) => n.simScore as number) } : undefined },
-        { label: 'Chain share rank', values: vals((n) => (n.rank ? `#${n.rank}` : 'n/a')), note: rankNote, short: `of ${R}`, dist: picks.every((n) => n.rank) ? { ...dRank, marks: picks.map((n) => n.rank as number) } : undefined },
+        { label: 'Chain Share', values: vals((n) => pct(n.chainShare)), note: shareNote, short: `median ${pct(c.medianShare)}`, dist: { ...dShare, marks: picks.map((n) => n.chainShare) } },
+        { label: 'Distinct Chains', values: vals((n) => num(n.chainBrands)), note: `City median ${c.medianChains}`, short: `median ${c.medianChains}`, dist: { ...dChains, marks: picks.map((n) => n.chainBrands) } },
+        { label: 'Similarity Score', values: vals((n) => (n.simScore === null ? 'n/a' : score(n.simScore))), note: `City median ${score(c.medianSim)}`, short: `median ${score(c.medianSim)}`, dist: picks.every((n) => n.simScore !== null) ? { ...dSim, marks: picks.map((n) => n.simScore as number) } : undefined },
+        { label: 'Chain Share Rank', values: vals((n) => (n.rank ? `#${n.rank}` : 'n/a')), note: rankNote, short: `of ${R}`, dist: picks.every((n) => n.rank) ? { ...dRank, marks: picks.map((n) => n.rank as number) } : undefined },
       ],
     };
   }
@@ -297,10 +326,10 @@ function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neut
       sub: `${boroLabel(sel.boro)} · ${plural(sel.n, 'restaurant')}`,
       neutral: false,
       cells: [
-        { label: 'Chain share', values: [{ text: sel.n ? pct(sel.chainShare) : 'n/a' }], delta: was ? `${since(sel.chainShare, was.s22, 'pts')} (${pct(was.s22)})` : undefined, note: sel.n ? `${ptsVs(sel.chainShare, c.medianShare)} the city median of ${pct(c.medianShare)}` : 'No restaurants on record here', short: sel.n ? `${signed(sharePts(sel.chainShare))} median` : 'no restaurants', dist: ranked ? { ...dShare, marks: [sel.chainShare] } : undefined },
-        { label: 'Chain brands', values: [{ text: num(sel.chainBrands) }], note: vsChains(sel.chainBrands), short: `${signed(sel.chainBrands - c.medianChains)} median`, dist: ranked ? { ...dChains, marks: [sel.chainBrands] } : undefined },
-        { label: 'Similarity score', values: [{ text: sel.simScore === null ? 'n/a' : score(sel.simScore) }], delta: simDelta(sel.simScore, prev?.byId.get(sel.id)?.simScore), note: sel.simScore === null ? (noSimReason(sel) ?? 'No score') : `${vsSim(sel.simScore)}.`, short: sel.simScore === null ? 'too few to score' : `${signed(simPts(sel.simScore))} median`, dist: sel.simScore !== null ? { ...dSim, marks: [sel.simScore] } : undefined },
-        { label: 'Chain share rank', values: [{ text: sel.rank ? `#${sel.rank}` : 'Not ranked' }], note: sel.rank ? rankNote : `Fewer than ${MIN_RESTAURANTS} restaurants`, short: sel.rank ? `of ${R}` : 'under 20 restaurants', dist: sel.rank ? { ...dRank, marks: [sel.rank] } : undefined },
+        { label: 'Chain Share', values: [{ text: sel.n ? pct(sel.chainShare) : 'n/a' }], delta: was ? `${since(sel.chainShare, was.s22, 'pts')} (${pct(was.s22)})` : against(sel.n ? sel.chainShare : null, L?.byId.get(sel.id)?.chainShare, 'pts', pct), note: sel.n ? `${ptsVs(sel.chainShare, c.medianShare)} the city median of ${pct(c.medianShare)}` : 'No restaurants on record here', short: sel.n ? `${signed(sharePts(sel.chainShare))} median` : 'no restaurants', dist: ranked ? { ...dShare, marks: [sel.chainShare] } : undefined },
+        { label: 'Distinct Chains', values: [{ text: num(sel.chainBrands) }], note: vsChains(sel.chainBrands), short: `${signed(sel.chainBrands - c.medianChains)} median`, dist: ranked ? { ...dChains, marks: [sel.chainBrands] } : undefined },
+        { label: 'Similarity Score', values: [{ text: sel.simScore === null ? 'n/a' : score(sel.simScore) }], delta: latest ? simDelta(sel.simScore, prev?.byId.get(sel.id)?.simScore) : simVs(sel.simScore, L?.byId.get(sel.id)?.simScore), note: sel.simScore === null ? (noSimReason(sel) ?? 'No score') : `${vsSim(sel.simScore)}.`, short: sel.simScore === null ? 'too few to score' : `${signed(simPts(sel.simScore))} median`, dist: sel.simScore !== null ? { ...dSim, marks: [sel.simScore] } : undefined },
+        { label: 'Chain Share Rank', values: [{ text: sel.rank ? `#${sel.rank}` : 'Not ranked' }], note: sel.rank ? rankNote : `Fewer than ${MIN_RESTAURANTS} restaurants`, short: sel.rank ? `of ${R}` : 'under 20 restaurants', dist: sel.rank ? { ...dRank, marks: [sel.rank] } : undefined },
       ],
     };
   }
@@ -310,24 +339,24 @@ function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neut
       sub: `Borough · ${plural(boro.restaurants, 'restaurant')}`,
       neutral: true,
       cells: [
-        { label: 'Chain share', values: [{ text: pct(boro.chainShare) }], note: `${ptsVs(boro.chainShare, c.medianShare)} the city's median neighborhood (${pct(c.medianShare)})`, short: `${signed(sharePts(boro.chainShare))} median`, dist: { ...dShare, marks: [boro.chainShare] } },
-        { label: 'Chain brands', values: [{ text: num(boro.chainBrands) }], note: `Of ${num(c.chainBrands)} citywide`, short: `of ${num(c.chainBrands)}` },
-        { label: 'Similarity score', values: [{ text: score(boro.medianSim) }], delta: simDelta(boro.medianSim, prev?.boroByKey.get(boro.key)?.medianSim), note: `Median of its ${boro.ranked} ranked neighborhoods. ${vsSim(boro.medianSim)}`, short: `${signed(simPts(boro.medianSim))} median`, dist: { ...dSim, marks: [boro.medianSim] } },
-        { label: 'Chain share rank', values: [{ text: `#${boro.rank}` }], note: 'Of 5 boroughs. #1 has the most chains.', short: 'of 5 boroughs' },
+        { label: 'Chain Share', values: [{ text: pct(boro.chainShare) }], note: `${ptsVs(boro.chainShare, c.medianShare)} the city's median neighborhood (${pct(c.medianShare)})`, short: `${signed(sharePts(boro.chainShare))} median`, dist: { ...dShare, marks: [boro.chainShare] } },
+        { label: 'Distinct Chains', values: [{ text: num(boro.chainBrands) }], note: `Of ${num(c.chainBrands)} citywide`, short: `of ${num(c.chainBrands)}`, bar: { parts: brandSplit(data.brands.filter((b) => b.tier !== 'independent' && b.boros[boro.key])), ends: ['mini', 'big'] } },
+        { label: 'Similarity Score', values: [{ text: score(boro.medianSim) }], delta: latest ? simDelta(boro.medianSim, prev?.boroByKey.get(boro.key)?.medianSim) : simVs(boro.medianSim, L?.boroByKey.get(boro.key)?.medianSim), note: `Median of its ${boro.ranked} ranked neighborhoods. ${vsSim(boro.medianSim)}`, short: `${signed(simPts(boro.medianSim))} median`, dist: { ...dSim, marks: [boro.medianSim] } },
+        { label: 'Chain Share Rank', values: [{ text: `#${boro.rank}` }], note: 'Of 5 boroughs. #1 has the most chains.', short: 'of 5 boroughs', dist: { min: 5, max: 1, median: 3, marks: [boro.rank], ends: ['#5', '#1'] } },
       ],
     };
   }
   const k = latest ? data.kpi.get('nyc:chain_penetration') : undefined;
   const kb = latest ? data.kpi.get('nyc:chain_brands') : undefined;
-  const ranked: Cell = { label: 'Ranked neighborhoods', values: [{ text: num(R) }], delta: prev ? `${since(R, prev.ranked.length, 'count')} (${num(prev.ranked.length)})` : undefined, note: `Of ${num(data.nbhds.length)} mapped.`, short: `of ${num(data.nbhds.length)} mapped` };
+  const ranked: Cell = { label: 'Ranked Neighborhoods', values: [{ text: num(R) }], delta: prev ? `${since(R, prev.ranked.length, 'count')} (${num(prev.ranked.length)})` : against(R, L?.ranked.length, 'count', num), note: `Of ${num(data.nbhds.length)} mapped. The rest have fewer than ${MIN_RESTAURANTS} restaurants.`, short: `of ${num(data.nbhds.length)} mapped`, bar: { parts: [{ v: R, token: 'var(--ink-3)' }, { v: Math.max(0, data.nbhds.length - R), token: 'var(--line)' }], ends: ['0', num(data.nbhds.length)] } };
   return {
     scope: 'New York City',
     sub: `${plural(c.restaurants, 'restaurant')} in ${num(data.nbhds.length)} neighborhoods`,
     neutral: true,
     cells: [
-      { label: 'Chain share', values: [{ text: pct(c.chainShare) }], delta: k ? `${since(k.v2026, k.v2022, 'pts')} (${pct(k.v2022)})` : undefined, note: `The median neighborhood is ${pct(c.medianShare)}`, short: `median ${pct(c.medianShare)}`, dist: { ...dShare, marks: [c.chainShare] } },
-      { label: 'Chain brands', values: [{ text: num(c.chainBrands) }], delta: kb ? `${since(kb.v2026, kb.v2022, 'count')} (${num(kb.v2022)})` : undefined, note: 'Brands with 3 or more locations', short: '3+ locations' },
-      { label: 'Similarity score', values: [{ text: score(c.medianSim) }], delta: simDelta(c.medianSim, prev?.city.medianSim), note: `Median neighborhood. 0 means no chains in common, 100 means ${ctx.simKind === 'set' ? 'the same chains' : 'the same mix'}.`, short: 'median, 0 to 100', dist: { ...dSim, marks: [c.medianSim] } },
+      { label: 'Chain Share', values: [{ text: pct(c.chainShare) }], delta: k ? `${since(k.v2026, k.v2022, 'pts')} (${pct(k.v2022)})` : against(c.chainShare, L?.city.chainShare, 'pts', pct), note: `The median neighborhood is ${pct(c.medianShare)}`, short: `median ${pct(c.medianShare)}`, dist: { ...dShare, marks: [c.chainShare] } },
+      { label: 'Distinct Chains', values: [{ text: num(c.chainBrands) }], delta: kb ? `${since(kb.v2026, kb.v2022, 'count')} (${num(kb.v2022)})` : against(c.chainBrands, L?.city.chainBrands, 'count', num), note: 'Brands with 3 or more locations', short: '3+ locations', bar: { parts: brandSplit(data.brands.filter((b) => b.tier !== 'independent')), ends: ['mini', 'big'] } },
+      { label: 'Similarity Score', values: [{ text: score(c.medianSim) }], delta: latest ? simDelta(c.medianSim, prev?.city.medianSim) : simVs(c.medianSim, L?.city.medianSim), note: `Median neighborhood. 0 means no chains in common, 100 means ${ctx.simKind === 'set' ? 'the same chains' : 'the same mix'}.`, short: 'median, 0 to 100', dist: { ...dSim, marks: [c.medianSim] } },
       ranked,
     ],
   };
@@ -469,13 +498,22 @@ export function YearControl({ year, status, playing, onYear, onPlay }: { year: n
 
 export function KpiStrip({ ctx, yearControl }: { ctx: Ctx; yearControl?: ReactNode }) {
   const { scope, neutral, cells } = kpiCells(ctx);
+  const uid = useId();
   return (
     <section className="sf-kpis" aria-label={`Key figures for ${scope}`}>
       <div className="sf-kpi-scope">{yearControl}</div>
       <dl className="sf-kpi-row">
-        {cells.map((cell) => (
+        {cells.map((cell, ci) => (
           <div className="sf-kpi" key={cell.label}>
-            <dt>{cell.label}</dt>
+            <dt>
+              {/* The explanation sits in a tooltip on the name: hover, or focus it with the keyboard */}
+              <span className="sf-kpi-name" tabIndex={0} aria-describedby={`${uid}-${ci}`}>
+                {cell.label}
+              </span>
+              <span className="sf-kpi-tip" role="tooltip" id={`${uid}-${ci}`}>
+                {cell.note}
+              </span>
+            </dt>
             <dd>
               <span className={`sf-kpi-values${cell.values.length > 2 ? ' is-three' : ''}`}>
                 {cell.values.map((v, i) => (
@@ -486,8 +524,8 @@ export function KpiStrip({ ctx, yearControl }: { ctx: Ctx; yearControl?: ReactNo
                 ))}
               </span>
               {cell.dist && <Dist d={cell.dist} neutral={neutral} />}
-              {cell.delta && <span className="sf-kpi-delta">{cell.delta}</span>}
-              <span className="sf-kpi-note">{cell.note}</span>
+              {cell.bar && <SplitBar b={cell.bar} />}
+              {cell.delta && <span className={`sf-kpi-delta${ctx.year !== LATEST_YEAR ? ' is-vs' : ''}`}>{cell.delta}</span>}
               <span className="sf-kpi-short">{cell.short}</span>
             </dd>
           </div>
@@ -1392,9 +1430,9 @@ function CompareView({ ctx, a, b }: { ctx: Ctx; a: Nbhd; b: Nbhd }) {
                 {(
                   [
                     ['Restaurants', (n: Nbhd) => num(n.n)],
-                    ['Chain share', (n: Nbhd) => pct(n.chainShare)],
+                    ['Chain Share', (n: Nbhd) => pct(n.chainShare)],
                     ['Big chain share', (n: Nbhd) => pct(tierShare(n.shares, 'big'))],
-                    ['Chain brands', (n: Nbhd) => String(n.chainBrands)],
+                    ['Distinct Chains', (n: Nbhd) => String(n.chainBrands)],
                   ] as const
                 ).map(([label, f]) => (
                   <tr key={label}>

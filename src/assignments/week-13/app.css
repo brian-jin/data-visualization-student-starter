@@ -2592,7 +2592,7 @@
   pointer-events: none;
 }
 .sf-kpis {
-  min-height: 164px; /* tall enough for the tallest figures with the larger text, so switching years does not move the page */
+  min-height: 118px; /* tall enough for the figures with their 2022 line, so switching years does not move the page */
 }
 /* The comparison with 2022 under a figure: bold, in the accent */
 .sf-kpi-delta {
@@ -3539,4 +3539,91 @@
 }
 .sf-methodlink a:hover {
   text-decoration-color: var(--accent);
+}
+
+/* The metric's explanation is a tooltip on its name, dark like the map's tooltips */
+.sf-kpi dt {
+  position: relative;
+}
+.sf-kpi-name {
+  cursor: help;
+  outline: none;
+}
+.sf-kpi-name:focus-visible {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 4px;
+}
+.sf-kpi-tip {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 70;
+  width: max-content;
+  max-width: 260px;
+  padding: var(--s-2) 10px;
+  border-radius: var(--r-sm);
+  background: var(--ink);
+  color: var(--on-dark);
+  font-size: var(--t-sm);
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+  box-shadow: 0 4px 14px var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-3px);
+  transition: opacity 160ms ease, transform 160ms var(--ease), visibility 0s linear 160ms;
+  pointer-events: none;
+}
+.sf-kpi:last-child .sf-kpi-tip {
+  left: auto;
+  right: 0;
+}
+.sf-kpi-name:hover + .sf-kpi-tip,
+.sf-kpi-name:focus-visible + .sf-kpi-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 160ms ease 120ms, transform 160ms var(--ease) 120ms, visibility 0s;
+}
+/* A bar split into parts, drawn like the range lines beside it */
+.sf-kpi-split {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 2px;
+}
+.sf-kpi-split::before {
+  display: none;
+}
+.sf-kpi-split i {
+  display: block;
+  height: 100%;
+  flex: none;
+  transition: width var(--med) var(--ease);
+}
+.sf-kpi-split i + i {
+  box-shadow: -1px 0 0 var(--paper);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-kpi-tip {
+    transition: none;
+  }
+}
+
+/* The year cell lines up with the other metrics: the same padding, and its label and number on the same lines as theirs. Desktop only. */
+@media (min-width: 761px) {
+  .sf-kpi,
+  .sf-kpi-scope {
+    padding-top: var(--s-2);
+    padding-bottom: var(--s-2);
+  }
+  .sf-kpi-scope {
+    align-self: start;
+  }
+}
+/* Viewing an earlier year, the line under a figure compares it with 2026, in the teal the Findings charts use for "fell" */
+.sf-kpi-delta.is-vs {
+  color: var(--ramp-3);
 }

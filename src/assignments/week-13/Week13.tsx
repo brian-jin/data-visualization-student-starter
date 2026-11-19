@@ -73,6 +73,8 @@ function Explorer({
   const data = useMemo(() => withSimKind(yearData, simKind), [yearData, simKind]);
   const prevReady = wantPrev && prevYear.status === 'ready' && prevYear.data !== base ? prevYear.data : null;
   const prev = useMemo(() => (prevReady ? withSimKind(prevReady, simKind) : null), [prevReady, simKind]);
+  // The latest year, for the lines that compare an earlier year with 2026
+  const latestData = useMemo(() => withSimKind(base, simKind), [base, simKind]);
   const shownYear = year ?? LATEST_YEAR;
   const [playing, setPlaying] = useState(false);
   const setYear = useCallback(
@@ -290,6 +292,7 @@ function Explorer({
     picking,
     pickingThird,
     prev: shownYear === LATEST_YEAR ? prev : null,
+    now: shownYear === LATEST_YEAR ? null : latestData,
     brands,
     boro,
     values,
