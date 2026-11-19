@@ -18,6 +18,9 @@ import shapely
 
 TIERS = ["independent", "mini_chain", "chain", "big_chain"]
 LEGAL_SUFFIXES = {"LLC", "INC", "CORP", "CORPORATION", "CO", "LTD", "LP", "LLP", "DBA"}
+# A trailing number after one of these words is part of the name (a numbered stand, bar or unit), not a store number.
+# Without this, every "STAND 205", "BAR 13" and "CAFE 9" would collapse into one fake brand.
+NUMBERED_PLACE_WORDS = {"STAND", "BAR", "CAFE", "UNIT", "TABLE", "KIOSK", "CART", "ROOM", "SUITE", "FLOOR", "GATE", "TERMINAL"}
 
 # Rough NYC boundaries used to drop outlier coordinates
 LAT_RANGE = (40.45, 40.95)
@@ -36,7 +39,8 @@ def normalize_name(raw: object) -> str:
     tokens = [t for t in s.split() if t not in LEGAL_SUFFIXES]
     if len(tokens) > 1 and tokens[0] == "THE":
         tokens = tokens[1:]
-    while len(tokens) > 1 and tokens[-1].isdigit():  # "SWEETGREEN 2" -> "SWEETGREEN"
+    # "SWEETGREEN 2" -> "SWEETGREEN", but not "STAND 107" / "BAR 13" / "CAFE 9": there the number tells places apart
+    while len(tokens) > 1 and tokens[-1].isdigit() and tokens[-2] not in NUMBERED_PLACE_WORDS:
         tokens.pop()
     return " ".join(tokens)
 
@@ -48,33 +52,68 @@ def clean_display(raw: object) -> str:
     return re.sub(r"\s+", " ", s).strip(" ,")
 
 
-def load_aliases(path: Path) -> list[tuple[str, str]]:
-    """{ "Canonical": ["variant", ...], ... } -> (normalized alias, normalized canonical), longest first."""
+def load_not_chains(path: Path) -> set[str]:
+    """Names shared by unrelated places ("Happy Garden"): each stays a one-off even if many share the name.
+    Listed under "_not_chains" in the alias file; matched exactly after normalization."""
+    if not path.exists():
+        return set()
+    return {normalize_name(n) for n in json.loads(path.read_text()).get("_not_chains", [])}
+
+
+def load_aliases(path: Path) -> list[tuple[str, str, bool]]:
+    """{ "Canonical": ["variant", ...], ... } -> (normalized alias, normalized canonical, exact_only), longest first.
+    A name starting with "=" matches exactly only; others also match as a prefix ("SWEETGREEN" covers "SWEETGREEN DUMBO")."""
     if not path.exists():
         print(f"no alias file at {path}; matching on normalized names only")
         return []
-    pairs = []
+    rows = []
     for canonical, variants in json.loads(path.read_text()).items():
         if canonical.startswith("_"):
             continue
-        canon = normalize_name(canonical)
+        canon = normalize_name(canonical.lstrip("="))
         for v in [canonical, *variants]:
-            alias = normalize_name(v)
+            alias = normalize_name(v.lstrip("="))
             if alias:
-                pairs.append((alias, canon))
-    return sorted(pairs, key=lambda p: len(p[0]), reverse=True)
+                rows.append((alias, canon, v.startswith("=")))
+    return sorted(rows, key=lambda p: len(p[0]), reverse=True)
 
 
-def apply_alias(name: str, lookup: list[tuple[str, str]]) -> str:
-    for alias, canonical in lookup:
-        if name == alias or name.startswith(alias + " "):
+def apply_alias(name: str, lookup: list[tuple[str, str, bool]]) -> str:
+    for alias, canonical, exact in lookup:
+        if name == alias:
+            return canonical
+        # also the alias followed by more words ("SWEETGREEN DUMBO") or glued-on digits ("DUNKIN99")
+        if not exact and (name.startswith(alias + " ") or (name.startswith(alias) and name[len(alias):].isdigit())):
             return canonical
     return name
 
 
 # Loading
+def address_key(df: pd.DataFrame) -> pd.Series:
+    """Building + street + zip, upper-cased with single spaces; empty when the address is missing."""
+    def clean(col):
+        return df[col].fillna("").astype(str).str.upper().str.replace(r"\s+", " ", regex=True).str.strip()
+    key = clean("BUILDING") + "|" + clean("STREET") + "|" + clean("ZIPCODE")
+    return key.where((clean("BUILDING") != "") & (clean("STREET") != ""), "")
+
+
+def merge_same_address(df: pd.DataFrame) -> pd.DataFrame:
+    """One restaurant per (brand, address). A theater, stadium or food hall often holds several permits (CAMIS ids) for the same
+    brand at the same address: a concession stand, a bar, a 3rd-floor cafe, or an old permit that was never retired. Those are one
+    location, so keep the most recently inspected permit (a real inspection beats a permit-only record)."""
+    solo = df["brand_key"].str.startswith("__UNNAMED_")
+    eligible = (df["addr_key"] != "") & ~solo
+    order = df.assign(_rank=df["not_yet_inspected"].astype(int)).sort_values(
+        ["_rank", "INSPECTION DATE"], ascending=[False, True]
+    )  # permit-only first, newest inspection last, so keep="last" picks the best record
+    dup = order[eligible.reindex(order.index)].duplicated(["brand_key", "addr_key"], keep="last")
+    drop = dup[dup].index
+    print(f"  Merged {len(drop):,} extra permits at the same brand + address (theaters, stadiums, food halls, re-registrations)")
+    return df.drop(index=drop)
+
+
 def load_restaurants(path: Path) -> pd.DataFrame:
-    usecols = ["CAMIS", "DBA", "CUISINE DESCRIPTION", "INSPECTION DATE", "Latitude", "Longitude"]
+    usecols = ["CAMIS", "DBA", "BUILDING", "STREET", "ZIPCODE", "CUISINE DESCRIPTION", "INSPECTION DATE", "Latitude", "Longitude"]
     df = pd.read_csv(path, usecols=usecols, dtype={"CAMIS": str}, low_memory=False)
     n_rows = len(df)
 
@@ -94,7 +133,8 @@ def load_restaurants(path: Path) -> pd.DataFrame:
 
     df["cuisine"] = df["CUISINE DESCRIPTION"].fillna("Unknown").astype(str).str.strip()
     df.loc[df["cuisine"] == "", "cuisine"] = "Unknown"
-    return df[["CAMIS", "DBA", "cuisine", "not_yet_inspected", "lat", "lon"]]
+    df["addr_key"] = address_key(df)
+    return df[["CAMIS", "DBA", "cuisine", "not_yet_inspected", "lat", "lon", "INSPECTION DATE", "addr_key"]]
 
 
 def pick_col(columns, candidates) -> str | None:
@@ -156,8 +196,10 @@ def add_tiers(df: pd.DataFrame, aliases: Path, mini_min: int, chain_min: int, bi
     norm = df["DBA"].map(normalize_name)
     mapping = {n: apply_alias(n, lookup) for n in norm.unique()}
     df["brand_key"] = norm.map(mapping)
-    blank = df["brand_key"] == ""
+    # Blank names and names marked "not a chain" each become their own one-off brand
+    blank = (df["brand_key"] == "") | df["brand_key"].isin(load_not_chains(aliases))
     df.loc[blank, "brand_key"] = "__UNNAMED_" + df.loc[blank, "CAMIS"]
+    df = merge_same_address(df)
 
     df["brand_locations"] = df["brand_key"].map(df.groupby("brand_key")["CAMIS"].nunique())
     # Brand label = most common cleaned raw name for that brand
@@ -265,14 +307,14 @@ def debug_neighborhood(query: str, nbhds: gpd.GeoDataFrame, joined: gpd.GeoDataF
 def main() -> None:
     root = Path(__file__).resolve().parent.parent
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--restaurants", type=Path, default=root / "public/data/raw/restaurants.csv")
+    ap.add_argument("--restaurants", type=Path, default=root / "public/data/raw/restaurants_2022_2026.csv")
     ap.add_argument("--nbhd", type=Path, default=root / "public/data/raw/neighborhoods.geo.json")
     ap.add_argument("--aliases", type=Path, default=root / "public/data/review/chain_aliases.json")
     ap.add_argument("--review-dir", type=Path, default=root / "public/data/review")
     ap.add_argument("--out-dir", type=Path, default=root / "public/data/")
-    ap.add_argument("--mini-min", type=int, default=2, help="locations for mini_chain")
-    ap.add_argument("--chain-min", type=int, default=10, help="locations for chain")
-    ap.add_argument("--big-min", type=int, default=30, help="locations for big_chain")
+    ap.add_argument("--mini-min", type=int, default=3, help="locations for mini_chain (2 similarly named shops are not a chain)")
+    ap.add_argument("--chain-min", type=int, default=10, help="locations for chain (mid-size)")
+    ap.add_argument("--big-min", type=int, default=50, help="locations for big_chain (established national names)")
     ap.add_argument("--simplify", type=float, default=0.0001, help="polygon simplification tolerance (degrees)")
     ap.add_argument("--debug", metavar="NAME", help="print diagnostics for neighborhoods whose name contains NAME")
     args = ap.parse_args()

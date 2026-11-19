@@ -1,26 +1,378 @@
 {
   "_note": "Canonical brand -> other spellings of it. Names are normalized before matching (case, punctuation, LLC/INC, store numbers ignored). A variant matches exactly or as a prefix (BLANK STREET also matches BLANK STREET COFFEE HUDSON). Edit, rerun, and check data/review/brand_review.csv.",
+  "_not_chains": [
+    "Bar",
+    "Cafe 101",
+    "China King",
+    "Happy Garden",
+    "Poke Bowl",
+    "Stand",
+    "The Local",
+    "The Morgan"
+  ],
+  "3 Coffee": [
+    "=3COFFEE"
+  ],
+  "375 Chicken 'n Fries": [
+    "375 Chicken"
+  ],
+  "7th Street Burger": [
+    "Seventh Street Burger",
+    "7th St Burger",
+    "=7 STREET BURGER"
+  ],
+  "98K Chicken And Burgers": [
+    "=98K CHICKEN AND BURGER"
+  ],
+  "Amc Theatres": [
+    "AMC Loews",
+    "AMC Magic Johnson",
+    "AMC Staten Island",
+    "AMC 34th Street"
+  ],
+  "Antojitos Mexicanos": [
+    "=ANTOJITOS MEXICANO"
+  ],
+  "Applebee's": [],
+  "Auntie Anne's": [],
+  "Bareburger": [
+    "=BAR BURGER"
+  ],
+  "Black Seed Bagels": [
+    "=BLACK SEED BAGEL"
+  ],
   "Blank Street": [
     "Blank Street Coffee",
     "Blank St"
   ],
+  "Bondi Sushi": [],
+  "Brasas": [
+    "=BRASA"
+  ],
+  "Buffalo Wild Wings": [
+    "=Buffalo Wild Wings Go"
+  ],
+  "Burger King": [
+    "=BURGER KING POPEYES"
+  ],
+  "Carvel": [],
+  "Champion Pizza": [],
+  "Charleys Philly Steaks": [
+    "=CHARLEYS PHILLY STEAK"
+  ],
+  "Checkers": [
+    "Rally's"
+  ],
+  "Chick-fil-A": [
+    "=CHICK FILL A"
+  ],
+  "Chipotle": [
+    "=CHIPOTLE MEXICAN GRILL UY",
+    "=Chipotle Mexican Grill",
+    "=CHIPOTLEMEXICAN GRILL"
+  ],
+  "Chop't": [],
+  "Church's Chicken": [
+    "Church's Texas Chicken"
+  ],
+  "Cinnabon": [],
+  "Cold Stone Creamery": [],
+  "Crown Fried Chicken": [],
+  "Crumbl": [],
+  "Dig Inn": [],
+  "Domino's": [
+    "=DOMINOS PIZZA"
+  ],
+  "Don Pollo": [
+    "=DON POLLOS"
+  ],
+  "Dos Toros": [],
+  "Dunkin": [
+    "Dunkin Donuts",
+    "Dunkin Baskin Robbins",
+    "=DUNKIN 38CC SHAKE SHACK 40CC POST GATE 22",
+    "=DUNKIN AND JIMMY JOHNS",
+    "=DUNKIN BAGGAGE CLAIM",
+    "=DUNKIN BASKIN ROBBINS",
+    "=DUNKIN BASKIN ROBBINS JIMMY JOHNS",
+    "=DUNKIN DONUTS",
+    "=DUNKIN DONUTS BASKIN ROBBINS",
+    "=DUNKIN DONUTS GUY V MOLINARI",
+    "=DUNKIN DONUTS JIMMY JOHNS QNS MARKET",
+    "=DUNKIN DONUTS M4A",
+    "=DUNKIN DONUTS SANDY GROUND FERRY BOATS TAVERN",
+    "=DUNKIN DOROTHY DAY",
+    "=DUNKIN HUDSON NEWS",
+    "=DUNKIN JIMMY JOHNS",
+    "=DUNKIN JIMMY JOHNS BASKIN ROBBINS",
+    "=DUNKIN MAMA MIAS PIZZA",
+    "=DUNKIN MARCHI FERRY BOAT TAVERN",
+    "=DUNKIN MARKET AT UHALL",
+    "=DUNKIN MICHAEL H OLLIS FERRY BOATS TAVERN",
+    "=DUNKIN MOBIL GAS STATION NORTH SIDE OF MAJOR DEEGAN EXPY",
+    "=DUNKIN PC",
+    "=DUNKIN PIZZA HUT NATHANS",
+    "=DUNKIN POPEYES",
+    "=DUNKIN SAMUEL I NEWHOUSE FERRY BOATS TAVERN",
+    "=DUNKIN SPIRIT OF AMERICA SI FERRY",
+    "=DUNKIN99",
+    "=GARDEN MARKET DUNKIN",
+    "=JUICE HOUSE NEAR DUNKIN",
+    "=PIZZA PUB DUNKIN EXPRESS GATE 7",
+    "=PRIME RIB DUNKIN DONUTS FA8040 CA8041",
+    "=DUNKIN BASKIN ROBINS",
+    "=Dunkin Baskin Robbins"
+  ],
+  "Earthbar": [],
+  "Empire Steak House": [
+    "=EMPIRE STEAKHOUSE"
+  ],
+  "Fatty Daddy Taco": [
+    "=FATTY DADDY TACOS"
+  ],
+  "Five Guys": [],
+  "Frozen D Lite": [
+    "=FROZEN DLITE"
+  ],
+  "Gnocchi On 9th": [
+    "=GNOCCI ON 9TH"
+  ],
+  "Golden Krust": [],
+  "Golden Wok": [
+    "=GOLDEN WOKS"
+  ],
+  "Gong Cha": [
+    "=GONGCHA"
+  ],
+  "Good Friends": [
+    "=GOOD FRIEND"
+  ],
+  "Guac Time": [
+    "=GUACTIME"
+  ],
+  "Haagen-Dazs": [
+    "=HAAGEN DAAZ"
+  ],
+  "Heytea": [],
+  "Hungry Ghost": [],
+  "Imilky": [
+    "=I MILKY"
+  ],
+  "Ipizza Ny": [
+    "=IPIZZANY"
+  ],
+  "Jamba": [],
+  "Jersey Mike's": [],
+  "Ji You Braised Food": [
+    "=JI YOU BRAISED FOODS"
+  ],
+  "Jimbos Hamburgers": [
+    "=JIMBOS HAMBURGER"
+  ],
+  "Joe & The Juice": [],
+  "Joe Coffee": [],
+  "Joe's Pizza": [],
+  "Just Salad": [],
+  "Kennedy Fried Chicken": [
+    "=APU KENNEDY FRIED CHICKEN",
+    "=KENNEDY FRIED CHICKEN AND PIZZA",
+    "=KENNEDY FRIED CHICKEN AND SALAD BAR",
+    "=KENNEDY FRIED CHICKEN AND SANDWICHES",
+    "=LIBERTY KENNEDY FRIED CHICKEN AND PIZZA",
+    "=ROSE CAFE KENNEDY FRIED CHICKEN",
+    "=SUPER KENNEDY FRIED CHICKEN",
+    "=U S KENNEDY FRIED CHICKEN",
+    "=US KENNEDY FRIED CHICKEN PIZZA",
+    "=KENBEDY FRIED CHICKEN",
+    "=KENNEDYS FRIED CHICKEN",
+    "=KENNEDYY FRIED CHICKEN"
+  ],
+  "KFC": [
+    "Kentucky Fried Chicken"
+  ],
+  "King Wok": [
+    "=KINGWOK"
+  ],
+  "Koris Eat": [
+    "=KORIS EATS"
+  ],
+  "Kpot Korean Bbq And Hot Pot": [
+    "=K POT KOREAN BBQ AND HOT POT",
+    "=KPOT KOREAN BBQ AND HOTPOT"
+  ],
+  "Krispy Kreme": [],
+  "Kung Fu Tea": [
+    "=KUNGFU TEA"
+  ],
+  "Kyuramen": [
+    "=KYU RAMEN"
+  ],
+  "Lao Jie Hotpot": [
+    "=LAOJIE HOTPOT"
+  ],
+  "Legends": [
+    "=LEGEND"
+  ],
+  "Lenwich": [],
+  "Life Cafe": [
+    "=LIFECAFE"
+  ],
+  "Little Caesars": [
+    "=LITTLE CAESAR",
+    "=LITTLE CEASARS"
+  ],
+  "Little Cupcake Bakeshop": [
+    "=LITTLE CUPCAKE BAKE SHOP"
+  ],
+  "Little Italy Pizza": [],
   "Little Ruby's": [
     "Little Ruby",
     "Little Rubys Cafe"
   ],
-  "7th Street Burger": [
-    "Seventh Street Burger",
-    "7th St Burger"
+  "Luckys": [
+    "=LUCKY"
   ],
+  "Mama Sushi": [
+    "=MAMASUSHI"
+  ],
+  "McDonald's": [
+    "=MCDONALDS RESTAURANT"
+  ],
+  "Merry Land Buffet": [
+    "=MERRYLAND BUFFET"
+  ],
+  "Mixue": [
+    "=MI XUE"
+  ],
+  "Mon Cheri": [
+    "=MONCHERI"
+  ],
+  "Nacho Macho Taco": [
+    "=NACHO MACHO TACOS"
+  ],
+  "Naya": [],
+  "New Lab": [
+    "=NEWLAB"
+  ],
+  "Noribar": [
+    "=NORI BAR"
+  ],
+  "Oakberry": [
+    "=OAK BERRY"
+  ],
+  "Overgreens": [
+    "=OVER GREENS"
+  ],
+  "Papa John's": [],
+  "Partners Coffee": [],
+  "Pep Bake House And Coffee Shop": [
+    "=PEP BAKEHOUSE AND COFFEE SHOP"
+  ],
+  "Pio Pio": [],
+  "Pizza Hut": [],
+  "Playa Bowls": [],
   "Pop Up Bagels": [
     "Popup Bagels",
-    "Pop Up Bagel"
+    "Pop Up Bagel",
+    "=POPUP BAGEL",
+    "=Popup Bagels"
   ],
+  "Popeyes": [
+    "=POPEYES CHICKEN AND BISCUITS",
+    "=POPEYES LOUISIANA CHICKEN",
+    "=POPEYES LOUISIANA KITCHEN",
+    "=POPYES"
+  ],
+  "Potbelly": [],
+  "Pret A Manger": [],
+  "Raising Cane's": [],
+  "Ralphs Italian Ices": [
+    "=RALPHS ITALIAN ICE"
+  ],
+  "Sarku Japan": [
+    "=SARKUS JAPAN"
+  ],
+  "Serafina": [],
+  "Shake Shack": [],
+  "Sobol": [],
   "Starbucks": [
-    "Starbucks Coffee"
+    "Starbucks Coffee",
+    "=2 SWEET OF STATEN ISLAND STARBUCKS",
+    "=MACYS STARBUCKS",
+    "=STARBUCKS BAYPLAZA MALL",
+    "=STARBUCKS BNY MELLON",
+    "=STARBUCKS CHARTWELLS",
+    "=STARBUCKS COFFEE",
+    "=STARBUCKS COFFEE COMPANY",
+    "=STARBUCKS FORDHAM UNIVERSITY",
+    "=STARBUCKS MARQUIS",
+    "=STARBUCKS PICKUP",
+    "=STARBUCKS RESERVE",
+    "=STARBUCKS RESERVE ROASTERY",
+    "=STARBUCKS COFFE",
+    "=Starbucks Coffee"
   ],
-  "Dunkin": [
-    "Dunkin Donuts",
-    "Dunkin Baskin Robbins"
+  "Subway": [
+    "=SUBWAY AND JUICE",
+    "=SUBWAY CAFE",
+    "=SUBWAY CARVEL",
+    "=SUBWAY CHICKPEA TO GO",
+    "=SUBWAY KRISPY KRUNCHY CHICKEN",
+    "=SUBWAY STAR MINI MART"
+  ],
+  "Sweetgreen": [],
+  "Taco Bell": [
+    "=KFC TACO BELL",
+    "=TACO BELL CANTINA",
+    "=TACO BELL DANGELO CENTER",
+    "=TACO BELL PIATTINO GREEN LEAFS",
+    "=TACO BELL PIZZA HUT",
+    "=TACO BEL"
+  ],
+  "Tacombi": [],
+  "Tal Bagels": [
+    "=TAL BAGEL"
+  ],
+  "Teriyaki One": [],
+  "Tex's Chicken & Burgers": [
+    "=TEX S CHICKEN AND BURGERS",
+    "=Texas Chicken And Burgers",
+    "=TEXAS CHICKEN AND BURGER",
+    "=TEXS CHICKEN AND BURGER",
+    "Texas Chicken & Burgers",
+    "Texas Chicken & Burger",
+    "Tex's Chicken & Burger",
+    "Tex S Chicken & Burgers"
+  ],
+  "The Cheesecake Factory": [],
+  "The Halal Guys": [],
+  "Tornado Crepes": [
+    "=TORNADO CREPE"
+  ],
+  "Tous Les Jours": [
+    "=TOUS LES JOUR"
+  ],
+  "Uncle Louie G's": [
+    "=UNCLE LOUIE G"
+  ],
+  "Van Leeuwen": [],
+  "Wendy's": [
+    "=WENDYS RESTAURANT"
+  ],
+  "Wingstop": [
+    "=WING STOP"
+  ],
+  "Wolfgangs Steakhouse": [
+    "=WOLFGANGS STEAK HOUSE"
+  ],
+  "Wonder": [],
+  "Yoyo Chicken": [
+    "=YO YO CHICKEN"
+  ],
+  "Yuanyang": [
+    "=YUAN YANG"
+  ],
+  "Zhong Zhong Noodles": [
+    "=ZHONGZHONG NOODLES"
   ]
 }
