@@ -1,0 +1,78 @@
+/* Design tokens for the Same-ification app. Every color in the app is defined here and nowhere else. */
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400..700&display=swap');
+
+.sf {
+  /* How big the interface is drawn on desktop, as a share of its design size. 0.8 is how it looks with the browser zoomed out to 80%. */
+  --ui-scale: 0.8;
+
+  /* Sequential choropleth ramp (the owner's teal ramp, unchanged). Used by every map mode. */
+  --ramp-1: #c9e4ca;
+  --ramp-2: #87bba2;
+  --ramp-3: #55828b;
+  --ramp-4: #3b6064;
+  --ramp-5: #364958;
+
+  /* Neutrals, tinted toward the ramp */
+  --ink: #15242b;
+  --ink-2: #3a4c54;
+  --ink-3: #56676e;
+  --paper: #fbfcfb;
+  --paper-2: #f2f5f3;
+  --paper-3: #e7ecea;
+  --water: #edf1ef;
+  --line: #d6dddb;
+  --line-strong: #aebbb8;
+  --nodata: #dde3e1;
+  --nodata-line: #cbd4d1;
+  --on-dark: #f3f8f5;
+  --on-dark-2: #cfdfdb;
+  --white: #ffffff;
+  --scrim: rgb(21 36 43 / 0.32);
+  --shadow: rgb(21 36 43 / 0.14);
+  --shadow-soft: rgb(21 36 43 / 0.08);
+
+  /* The one accent: selection, focus, and brand dots */
+  --accent: #bb87a0;
+  --accent-soft: #efe1e7;
+
+  /* Two more accents, for the second and third neighborhood when comparing. Together with the first they are A, B and C. */
+  --accent-b: #a287bb;
+  --accent-b-soft: #e8e1ee;
+  --accent-c: #bba287;
+  --accent-c-soft: #efe9e3;
+
+  /* Roles */
+  --masthead: var(--ramp-5);
+  --masthead-2: var(--ramp-4);
+  --tier-independent: var(--paper-3);
+  --tier-mini: var(--ramp-2);
+  --tier-mid: var(--ramp-3);
+  --tier-big: var(--ramp-5);
+
+  /* Type */
+  --font: 'Figtree', 'Helvetica Neue', Arial, sans-serif;
+  --t-xs: 0.75rem;
+  --t-sm: 0.8125rem;
+  --t-base: 0.9375rem;
+  --t-md: 1.0625rem;
+  --t-lg: 1.375rem;
+  --t-xl: 1.75rem;
+  --t-2xl: 2.5rem;
+  --t-3xl: 3.5rem;
+
+  /* Space, radius, motion */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 72px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --panel-w: 408px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --fast: 140ms;
+  --med: 240ms;
+}
