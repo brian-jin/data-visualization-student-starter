@@ -3494,3 +3494,49 @@
   padding-top: var(--s-2);
   border-top: 1px solid var(--line);
 }
+
+/* The borough rows of the strip plot are buttons in the city views */
+.sf-strip-row {
+  fill: transparent;
+  cursor: pointer;
+  transition: fill var(--fast);
+}
+.sf-strip-row:hover {
+  fill: var(--paper-2);
+}
+.sf-strip-row.is-on {
+  fill: var(--accent-soft);
+}
+.sf-strip-label.is-link {
+  cursor: pointer;
+}
+.sf-strip-label.is-link:hover,
+.sf-strip-label.is-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  outline: none;
+}
+/* The median of the whole city: a dashed line through every row, named at the top */
+.sf-strip-city line {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+.sf-strip-city text {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  fill: var(--ink);
+  pointer-events: none;
+}
+
+.sf-methodlink a {
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+.sf-methodlink a:hover {
+  text-decoration-color: var(--accent);
+}

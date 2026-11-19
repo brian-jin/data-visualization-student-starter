@@ -227,7 +227,7 @@ export function TierGrid({ ctx, onOpen }: { ctx: Ctx; onOpen: (m: Mode) => void 
             </>
           )
         ) : (
-          'Hover or tap a neighborhood to read all four shares. Select one to keep it outlined in every map.'
+          'Hover or tap a neighborhood to read all four shares.'
         )}
       </p>
     </>
@@ -314,7 +314,7 @@ export function MakeupPlot({ ctx, active }: { ctx: Ctx; active: Set<number> | nu
       <header className="sf-lens-head">
         <h2>Neighborhoods by what their restaurants are{ctx.year !== 2026 ? `, ${ctx.year}` : ''}</h2>
         <p>
-          Each dot is a neighborhood, placed by its mix of the four tiers and its {emb.cuisines} most common cuisines. Dots close together have a similar makeup. Dot size is the number of restaurants; color is the map's current measure.
+          Each dot is a neighborhood, placed by its mix of the four tiers and its {emb.cuisines} most common cuisines. Dots close together have a similar makeup. Dot size is restaurants; color follows the map.
         </p>
       </header>
       <div className="sf-plot is-zoomable" ref={ref}>
@@ -383,7 +383,7 @@ export function MakeupPlot({ ctx, active }: { ctx: Ctx; active: Set<number> | nu
           </>
         ) : (
           <>
-            The two axes are blends found by principal component analysis, not single measurements. Together they hold {pct(emb.axes[0].explained + emb.axes[1].explained)} of the variation between neighborhoods, so treat distance as a rough guide.
+            The axes are blends of many measurements and hold {pct(emb.axes[0].explained + emb.axes[1].explained)} of the variation, so treat distance as a rough guide.
           </>
         )}
       </p>
@@ -502,7 +502,7 @@ export function ChangePlot({ ctx, active }: { ctx: Ctx; active: Set<number> | nu
             <b>{pick.n.name}</b>, {boroLabel(pick.n.boro)}: {pct(pick.s22)} of {num(pick.n22)} restaurants in 2022, {pct(pick.s26)} of {num(pick.n26)} in 2026 ({pts(pick.d)}).
           </>
         ) : (
-          <>Hover or tap a line to read it. Select one to open the neighborhood. Each year uses its own snapshot of the inspection file and its own chain counts; a neighborhood needs 20 or more restaurants in both.</>
+          <>Hover or tap a line to read it. A neighborhood needs 20 or more restaurants in both years.</>
         )}
       </p>
     </>
@@ -758,7 +758,7 @@ function YearLines({ ctx }: { ctx: Ctx }) {
             . {num(timeline.open[at!])} restaurants counted.
           </>
         ) : (
-          <>A restaurant counts as open from its first inspection on record to its last listing. Years before 2022 only include places that were still open in 2022, so read the early years as a floor, not a count. This chart is built from the pooled timeline file, so its 2022 and 2026 points can sit a point away from the figures in the strip above.</>
+          <>A restaurant counts as open from its first inspection on record to its last listing. Years before 2022 only include places still open in 2022, so read them as a floor, not a count. The 2022 and 2026 points can sit a point away from the figures above.</>
         )}
       </p>
     </>

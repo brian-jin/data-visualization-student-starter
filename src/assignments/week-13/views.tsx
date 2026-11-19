@@ -3,7 +3,7 @@ import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { BOROS, LATEST_YEAR, MIN_CHAIN_RESTAURANTS, MIN_RESTAURANTS, TIERS, YEARS, boroLabel, yearKind, flat, num, pct, plural, ptsVs, score, simBetween, tierShare } from './data';
 import type { BoroStat, Brand, Data, Mode, Nbhd, Place, SimKind, Tier } from './data';
-import { RollNumber, Disclosure, Icon, Tabs, useWidth } from './ui';
+import { RollNumber, Icon, StateLink, Tabs, useUrl, useWidth } from './ui';
 import { RestaurantList } from './restaurants';
 
 export interface Actions {
@@ -283,8 +283,8 @@ function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neut
       neutral: false,
       cells: [
         { label: 'Chain share', values: vals((n) => pct(n.chainShare)), note: shareNote, short: `median ${pct(c.medianShare)}`, dist: { ...dShare, marks: picks.map((n) => n.chainShare) } },
-        { label: 'Distinct chains', values: vals((n) => num(n.chainBrands)), note: `City median ${c.medianChains}`, short: `median ${c.medianChains}`, dist: { ...dChains, marks: picks.map((n) => n.chainBrands) } },
-        { label: 'Similarity score', values: vals((n) => (n.simScore === null ? 'n/a' : score(n.simScore))), note: `Each one's average against all others. City median ${score(c.medianSim)}`, short: `median ${score(c.medianSim)}`, dist: picks.every((n) => n.simScore !== null) ? { ...dSim, marks: picks.map((n) => n.simScore as number) } : undefined },
+        { label: 'Chain brands', values: vals((n) => num(n.chainBrands)), note: `City median ${c.medianChains}`, short: `median ${c.medianChains}`, dist: { ...dChains, marks: picks.map((n) => n.chainBrands) } },
+        { label: 'Similarity score', values: vals((n) => (n.simScore === null ? 'n/a' : score(n.simScore))), note: `City median ${score(c.medianSim)}`, short: `median ${score(c.medianSim)}`, dist: picks.every((n) => n.simScore !== null) ? { ...dSim, marks: picks.map((n) => n.simScore as number) } : undefined },
         { label: 'Chain share rank', values: vals((n) => (n.rank ? `#${n.rank}` : 'n/a')), note: rankNote, short: `of ${R}`, dist: picks.every((n) => n.rank) ? { ...dRank, marks: picks.map((n) => n.rank as number) } : undefined },
       ],
     };
@@ -298,8 +298,8 @@ function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neut
       neutral: false,
       cells: [
         { label: 'Chain share', values: [{ text: sel.n ? pct(sel.chainShare) : 'n/a' }], delta: was ? `${since(sel.chainShare, was.s22, 'pts')} (${pct(was.s22)})` : undefined, note: sel.n ? `${ptsVs(sel.chainShare, c.medianShare)} the city median of ${pct(c.medianShare)}` : 'No restaurants on record here', short: sel.n ? `${signed(sharePts(sel.chainShare))} median` : 'no restaurants', dist: ranked ? { ...dShare, marks: [sel.chainShare] } : undefined },
-        { label: 'Distinct chains', values: [{ text: num(sel.chainBrands) }], note: vsChains(sel.chainBrands), short: `${signed(sel.chainBrands - c.medianChains)} median`, dist: ranked ? { ...dChains, marks: [sel.chainBrands] } : undefined },
-        { label: 'Similarity score', values: [{ text: sel.simScore === null ? 'n/a' : score(sel.simScore) }], delta: simDelta(sel.simScore, prev?.byId.get(sel.id)?.simScore), note: sel.simScore === null ? (noSimReason(sel) ?? 'No score') : `${vsSim(sel.simScore)}. 100 would match every neighborhood.`, short: sel.simScore === null ? 'too few to score' : `${signed(simPts(sel.simScore))} median`, dist: sel.simScore !== null ? { ...dSim, marks: [sel.simScore] } : undefined },
+        { label: 'Chain brands', values: [{ text: num(sel.chainBrands) }], note: vsChains(sel.chainBrands), short: `${signed(sel.chainBrands - c.medianChains)} median`, dist: ranked ? { ...dChains, marks: [sel.chainBrands] } : undefined },
+        { label: 'Similarity score', values: [{ text: sel.simScore === null ? 'n/a' : score(sel.simScore) }], delta: simDelta(sel.simScore, prev?.byId.get(sel.id)?.simScore), note: sel.simScore === null ? (noSimReason(sel) ?? 'No score') : `${vsSim(sel.simScore)}.`, short: sel.simScore === null ? 'too few to score' : `${signed(simPts(sel.simScore))} median`, dist: sel.simScore !== null ? { ...dSim, marks: [sel.simScore] } : undefined },
         { label: 'Chain share rank', values: [{ text: sel.rank ? `#${sel.rank}` : 'Not ranked' }], note: sel.rank ? rankNote : `Fewer than ${MIN_RESTAURANTS} restaurants`, short: sel.rank ? `of ${R}` : 'under 20 restaurants', dist: sel.rank ? { ...dRank, marks: [sel.rank] } : undefined },
       ],
     };
@@ -311,7 +311,7 @@ function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neut
       neutral: true,
       cells: [
         { label: 'Chain share', values: [{ text: pct(boro.chainShare) }], note: `${ptsVs(boro.chainShare, c.medianShare)} the city's median neighborhood (${pct(c.medianShare)})`, short: `${signed(sharePts(boro.chainShare))} median`, dist: { ...dShare, marks: [boro.chainShare] } },
-        { label: 'Distinct chains', values: [{ text: num(boro.chainBrands) }], note: `Of ${num(c.chainBrands)} citywide`, short: `of ${num(c.chainBrands)}` },
+        { label: 'Chain brands', values: [{ text: num(boro.chainBrands) }], note: `Of ${num(c.chainBrands)} citywide`, short: `of ${num(c.chainBrands)}` },
         { label: 'Similarity score', values: [{ text: score(boro.medianSim) }], delta: simDelta(boro.medianSim, prev?.boroByKey.get(boro.key)?.medianSim), note: `Median of its ${boro.ranked} ranked neighborhoods. ${vsSim(boro.medianSim)}`, short: `${signed(simPts(boro.medianSim))} median`, dist: { ...dSim, marks: [boro.medianSim] } },
         { label: 'Chain share rank', values: [{ text: `#${boro.rank}` }], note: 'Of 5 boroughs. #1 has the most chains.', short: 'of 5 boroughs' },
       ],
@@ -319,14 +319,14 @@ function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neut
   }
   const k = latest ? data.kpi.get('nyc:chain_penetration') : undefined;
   const kb = latest ? data.kpi.get('nyc:chain_brands') : undefined;
-  const ranked: Cell = { label: 'Ranked neighborhoods', values: [{ text: num(R) }], delta: prev ? `${since(R, prev.ranked.length, 'count')} (${num(prev.ranked.length)})` : undefined, note: `Of ${num(data.nbhds.length)} mapped. The rest have fewer than ${MIN_RESTAURANTS} restaurants.`, short: `of ${num(data.nbhds.length)} mapped` };
+  const ranked: Cell = { label: 'Ranked neighborhoods', values: [{ text: num(R) }], delta: prev ? `${since(R, prev.ranked.length, 'count')} (${num(prev.ranked.length)})` : undefined, note: `Of ${num(data.nbhds.length)} mapped.`, short: `of ${num(data.nbhds.length)} mapped` };
   return {
     scope: 'New York City',
     sub: `${plural(c.restaurants, 'restaurant')} in ${num(data.nbhds.length)} neighborhoods`,
     neutral: true,
     cells: [
       { label: 'Chain share', values: [{ text: pct(c.chainShare) }], delta: k ? `${since(k.v2026, k.v2022, 'pts')} (${pct(k.v2022)})` : undefined, note: `The median neighborhood is ${pct(c.medianShare)}`, short: `median ${pct(c.medianShare)}`, dist: { ...dShare, marks: [c.chainShare] } },
-      { label: 'Distinct chains', values: [{ text: num(c.chainBrands) }], delta: kb ? `${since(kb.v2026, kb.v2022, 'count')} (${num(kb.v2022)})` : undefined, note: 'Brands with 3 or more locations', short: '3+ locations' },
+      { label: 'Chain brands', values: [{ text: num(c.chainBrands) }], delta: kb ? `${since(kb.v2026, kb.v2022, 'count')} (${num(kb.v2022)})` : undefined, note: 'Brands with 3 or more locations', short: '3+ locations' },
       { label: 'Similarity score', values: [{ text: score(c.medianSim) }], delta: simDelta(c.medianSim, prev?.city.medianSim), note: `Median neighborhood. 0 means no chains in common, 100 means ${ctx.simKind === 'set' ? 'the same chains' : 'the same mix'}.`, short: 'median, 0 to 100', dist: { ...dSim, marks: [c.medianSim] } },
       ranked,
     ],
@@ -702,24 +702,13 @@ const linkTo = (ctx: Ctx, id: string) => ({ onEnter: () => ctx.setHover(id), onL
 
 const tierName = (t: Tier) => TIERS.find((x) => x.key === t)?.label ?? t;
 
-function ChainHelp() {
+// The full explanations of chain, tiers and similarity live on the Methodology page, so the panels only point to it
+function MethodLink() {
+  const { href } = useUrl();
   return (
-    <Disclosure summary="What counts as a chain?">
-      <p>A chain is a restaurant brand with three or more locations in the five boroughs. Two shops with the same name are not counted as a chain.</p>
-      <p>Mini chains have 3 to 9 locations, mid-size chains 10 to 49, and big chains 50 or more. Chain share is the percentage of a neighborhood's restaurants that belong to any of them.</p>
-    </Disclosure>
-  );
-}
-function SimHelp({ kind }: { kind: SimKind }) {
-  return (
-    <Disclosure summary="How is similarity calculated?">
-      {kind === 'set' ? (
-        <p>Showing chain overlap. Each neighborhood gets a list of the chains it has, yes or no, however many locations of each. Two lists are compared with cosine similarity, scaled to 0 to 100: the chains they share divided by the square root of each one's chain count. 100 means exactly the same chains. 0 means none in common.</p>
-      ) : (
-        <p>Showing chain mix. Each neighborhood gets a list of how many locations it has of every chain. Two lists are compared by how closely they line up (cosine similarity), scaled to 0 to 100. 100 means the same chains in the same proportions, so a chain with many locations counts for more. 0 means no chain in common.</p>
-      )}
-      <p>A neighborhood's similarity score is its average against every other scored neighborhood. Only neighborhoods with {MIN_CHAIN_RESTAURANTS} or more chain restaurants are scored, because one or two chains make a profile of noise. Independent restaurants are left out.</p>
-    </Disclosure>
+    <p className="sf-footnote sf-methodlink">
+      <StateLink to={href({ v: 'method' })}>How chain share and similarity are measured</StateLink>
+    </p>
   );
 }
 
@@ -732,8 +721,10 @@ export function StripPlot({ ctx }: { ctx: Ctx }) {
   const left = 96;
   const right = 14;
   const rowH = 36;
-  const top = 8;
+  const top = 26; // room above the rows for the city median's label
   const rows = BOROS.filter((b) => data.boroByKey.has(b));
+  // In the city and borough views a row is a button: it shows that borough on the map. Inside a neighborhood the rows only inform.
+  const pickable = !ctx.sel && !ctx.cmp;
   const max = useMemo(() => Math.max(0.1, Math.ceil(Math.max(0, ...values.values()) * 10) / 10), [values]);
   const x = (v: number) => left + (v / max) * Math.max(10, w - left - right);
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => t * max);
@@ -754,12 +745,18 @@ export function StripPlot({ ctx }: { ctx: Ctx }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [dots, values],
   );
+  // The median of every ranked neighborhood, for whatever the map is showing
+  const cityMedian = useMemo(() => {
+    const vs = dots.map((n) => values.get(n.id)!).sort((p, q) => p - q);
+    return vs.length ? (vs.length % 2 ? vs[vs.length >> 1] : (vs[vs.length / 2 - 1] + vs[vs.length / 2]) / 2) : null;
+  }, [dots, values]);
+  const pickBoro = (b: string) => ctx.act.setBoro(ctx.boro?.key === b ? null : b);
   const special = (id: string) => (id === sel?.id ? 'is-a' : id === cmp?.id ? 'is-b' : id === ctx.third?.id ? 'is-c' : id === hoverId ? 'is-hover' : '');
   const hovered = hoverId ? data.byId.get(hoverId) : undefined;
   return (
     <figure className="sf-strip" ref={ref}>
       <figcaption>
-        <b>Neighborhoods by borough.</b> {meta.axis}. Each dot is a neighborhood; the tick is the borough median.
+        <b>Neighborhoods by borough.</b> {meta.axis}. Each dot is a neighborhood; the tick is the borough median and the dashed line is the city median.{pickable ? ' Select a borough to show it on the map.' : ''}
       </figcaption>
       {w > 0 && (
         <svg width={w} height={h} role="img" aria-label={`Strip plot of ${meta.axis.toLowerCase()} for each ranked neighborhood, one row per borough. The Ranking tab lists the same values.`}>
@@ -773,12 +770,40 @@ export function StripPlot({ ctx }: { ctx: Ctx }) {
           ))}
           {rows.map((b, r) => (
             <g key={b}>
-              <text className={`sf-strip-label${ctx.boro?.key === b ? ' is-on' : ''}`} x={0} y={top + r * rowH + rowH / 2 + 4}>
+              {pickable && <rect className={`sf-strip-row${ctx.boro?.key === b ? ' is-on' : ''}`} x={0} y={top + r * rowH} width={w} height={rowH} rx={4} onClick={() => pickBoro(b)} />}
+              <text
+                className={`sf-strip-label${ctx.boro?.key === b ? ' is-on' : ''}${pickable ? ' is-link' : ''}`}
+                x={6}
+                y={top + r * rowH + rowH / 2 + 4}
+                {...(pickable
+                  ? {
+                      role: 'button',
+                      tabIndex: 0,
+                      'aria-pressed': ctx.boro?.key === b,
+                      'aria-label': `${boroLabel(b)}: show on the map`,
+                      onClick: () => pickBoro(b),
+                      onKeyDown: (e: React.KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          pickBoro(b);
+                        }
+                      },
+                    }
+                  : {})}
+              >
                 {boroLabel(b)}
               </text>
               <line className="sf-strip-median" x1={x(medians[r])} x2={x(medians[r])} y1={top + r * rowH + 4} y2={top + (r + 1) * rowH - 4} />
             </g>
           ))}
+          {cityMedian !== null && (
+            <g className="sf-strip-city">
+              <line x1={x(cityMedian)} x2={x(cityMedian)} y1={top - 6} y2={top + rows.length * rowH} />
+              <text x={x(cityMedian)} y={top - 11} textAnchor="middle">
+                City median {meta.fmt(cityMedian)}
+              </text>
+            </g>
+          )}
           <g onPointerLeave={() => ctx.setHover(null)}>
             {dots.map((n) => {
               const s = special(n.id);
@@ -799,7 +824,7 @@ export function StripPlot({ ctx }: { ctx: Ctx }) {
             <b>{hovered.name}</b>, {boroLabel(hovered.boro)}: {meta.fmt(values.get(hovered.id)!)}
           </>
         ) : (
-          'Hover or tap a dot to read it. Select one to open the neighborhood.'
+          'Hover or tap a dot to read it.'
         )}
       </p>
     </figure>
@@ -902,7 +927,7 @@ function Ranking({ ctx }: { ctx: Ctx }) {
         </table>
       </div>
       <p className="sf-footnote">
-        {plural(rows.length, 'neighborhood')} with {MIN_RESTAURANTS} or more restaurants. Rank is by chain share across the city.
+        {plural(rows.length, 'neighborhood')}. Rank is by chain share.
       </p>
     </div>
   );
@@ -979,7 +1004,7 @@ function CityView({ ctx }: { ctx: Ctx }) {
                 </>
               ) : (
                 <>
-                  {pct(c.chainShare)} of the city's {num(c.restaurants)} restaurants belong to a chain. The median neighborhood sits at {pct(c.medianShare)}.
+                  {pct(c.chainShare)} of the city's {num(c.restaurants)} restaurants belong to a chain.
                 </>
               )}{' '}
               {most && least && (
@@ -1002,8 +1027,7 @@ function CityView({ ctx }: { ctx: Ctx }) {
               <TierTable cols={boro ? [{ head: boro.label, shares: boro.shares }, { head: 'City', shares: c.shares }] : [{ head: 'City', shares: c.shares }]} />
             </section>
             <TopChains ctx={ctx} list={chains} title={boro ? `Largest chains in ${boro.label}` : 'Largest chains'} empty="No chains on record." />
-            <ChainHelp />
-            <SimHelp kind={ctx.simKind} />
+            <MethodLink />
           </>
         )}
         {tab === 'restaurants' && <RestaurantList key={boro?.key ?? 'city'} data={data} scope={{ name: boro ? boro.label : 'New York City', boro: boro?.key }} pin={ctx.pin} onPin={ctx.act.pinPlace} onList={ctx.act.listPlaces} />}
@@ -1150,7 +1174,7 @@ function NbhdView({ ctx, n }: { ctx: Ctx; n: Nbhd }) {
             )}
             <TopChains ctx={ctx} list={chains} title="Chains with the most locations here" empty="No chain has a location here." />
             {n.eligible && <StripPlot ctx={ctx} />}
-            <ChainHelp />
+            <MethodLink />
           </>
         )}
         {tab === 'restaurants' && <RestaurantList key={n.id} data={data} scope={{ name: n.name, nbhdId: n.id }} pin={ctx.pin} onPin={ctx.act.pinPlace} onList={ctx.act.listPlaces} />}
@@ -1171,7 +1195,7 @@ function NbhdView({ ctx, n }: { ctx: Ctx; n: Nbhd }) {
               </p>
             )}
             <SimilarLists ctx={ctx} a={n} action="Select a neighborhood to compare it with this one." />
-            <SimHelp kind={ctx.simKind} />
+            <MethodLink />
           </>
         )}
       </div>
@@ -1370,7 +1394,7 @@ function CompareView({ ctx, a, b }: { ctx: Ctx; a: Nbhd; b: Nbhd }) {
                     ['Restaurants', (n: Nbhd) => num(n.n)],
                     ['Chain share', (n: Nbhd) => pct(n.chainShare)],
                     ['Big chain share', (n: Nbhd) => pct(tierShare(n.shares, 'big'))],
-                    ['Distinct chains', (n: Nbhd) => String(n.chainBrands)],
+                    ['Chain brands', (n: Nbhd) => String(n.chainBrands)],
                   ] as const
                 ).map(([label, f]) => (
                   <tr key={label}>
@@ -1493,7 +1517,7 @@ function CompareView({ ctx, a, b }: { ctx: Ctx; a: Nbhd; b: Nbhd }) {
               ))}
           </>
         )}
-        <SimHelp kind={ctx.simKind} />
+        <MethodLink />
       </div>
     </>
   );
@@ -1546,7 +1570,7 @@ function BrandView({ ctx }: { ctx: Ctx }) {
         </div>
       </header>
       <div className="sf-panel-body">
-        <p className="sf-lede is-small">Each dot is one location. The shading underneath is still the map's current measure. Hover or tap a dot for its name.</p>
+        <p className="sf-lede is-small">Each dot is one location. Hover or tap one for its name.</p>
         {brands.length > 1 && (
           <section>
             <h3>Side by side</h3>
@@ -1613,7 +1637,7 @@ function BrandView({ ctx }: { ctx: Ctx }) {
                 ))}
               </ul>
               <p className="sf-footnote">
-                In {plural(br.nbhds.size, 'neighborhood')}. Selecting one zooms to it; this search stays on until you clear it.
+                In {plural(br.nbhds.size, 'neighborhood')}. Select one to zoom to it.
               </p>
             </section>
           );
