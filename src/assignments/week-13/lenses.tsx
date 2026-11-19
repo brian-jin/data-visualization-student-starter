@@ -71,6 +71,8 @@ export function TierGrid({ ctx, onOpen }: { ctx: Ctx; onOpen: (m: Mode) => void 
   const viewBox = `${b[0][0] - 10} ${b[0][1] - 10} ${b[1][0] - b[0][0] + 20} ${b[1][1] - b[0][1] + 20}`;
   const hover = hoverId ? data.byId.get(hoverId) : undefined;
   const shown = hover ?? sel ?? undefined;
+  // A name beside the pointer, on whichever of the four maps it is over. The maps carry no labels of their own.
+  const [tip, setTip] = useState<{ mode: Mode; x: number; y: number; name: string; w: number } | null>(null);
 
   // One zoom for all four maps: a pan or zoom on any of them is copied to the others
   const gridRef = useRef<HTMLDivElement>(null);
@@ -157,8 +159,17 @@ export function TierGrid({ ctx, onOpen }: { ctx: Ctx; onOpen: (m: Mode) => void 
                 onPointerMove={(e) => {
                   const id = idAt(e);
                   if (id !== hoverId) ctx.setHover(id);
+                  const fig = e.currentTarget.parentElement;
+                  const name = id ? data.byId.get(id)?.name : undefined;
+                  if (fig && name && e.pointerType !== 'touch') {
+                    const at = localPoint(e, fig, fig.clientWidth, fig.clientHeight);
+                    setTip({ mode: m.mode, x: at.x, y: at.y, name, w: fig.clientWidth });
+                  } else setTip(null);
                 }}
-                onPointerLeave={() => ctx.setHover(null)}
+                onPointerLeave={() => {
+                  ctx.setHover(null);
+                  setTip(null);
+                }}
                 onClick={(e) => {
                   const id = idAt(e);
                   if (id) ctx.act.select(id);
@@ -187,6 +198,11 @@ export function TierGrid({ ctx, onOpen }: { ctx: Ctx; onOpen: (m: Mode) => void 
                   )}
                 </g>
               </svg>
+              {tip && tip.mode === m.mode && (
+                <div className={`sf-tip${tip.x > tip.w - 170 ? ' flip-x' : ''}`} style={{ left: tip.x, top: tip.y }}>
+                  <b>{tip.name}</b>
+                </div>
+              )}
               <ol className="sf-minikey" aria-label={`Bands for ${m.title}`}>
                 {[`<${br[0]}%`, `${br[0]}–${br[1]}`, `${br[1]}–${br[2]}`, `${br[2]}–${br[3]}`, `${br[3]}%+`].map((label, i) => (
                   <li key={i} className={shown && m.classes.get(shown.id) === i ? 'is-here' : ''}>

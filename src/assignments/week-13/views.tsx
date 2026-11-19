@@ -2,8 +2,9 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { BOROS, LATEST_YEAR, MIN_CHAIN_RESTAURANTS, MIN_RESTAURANTS, TIERS, YEARS, boroLabel, yearKind, flat, num, pct, plural, ptsVs, score, simBetween, tierShare } from './data';
-import type { BoroStat, Brand, Data, Mode, Nbhd, SimKind, Tier } from './data';
+import type { BoroStat, Brand, Data, Mode, Nbhd, Place, SimKind, Tier } from './data';
 import { RollNumber, Disclosure, Icon, Tabs, useWidth } from './ui';
+import { RestaurantList } from './restaurants';
 
 export interface Actions {
   select: (id: string) => void;
@@ -23,6 +24,8 @@ export interface Actions {
   setBoro: (key: string | null) => void;
   setTab: (t: string) => void;
   focusSearch: () => void;
+  pinPlace: (p: Place | null) => void; // highlight one restaurant on the map (null clears it)
+  listPlaces: (list: Place[]) => void; // the restaurants the Restaurants tab lists, so the map can draw them all
   setYear: (y: number) => void;
 }
 export interface Ctx {
@@ -42,6 +45,7 @@ export interface Ctx {
   classes: Map<string, number>;
   hoverId: string | null;
   setHover: (id: string | null) => void;
+  pin: Place | null; // the restaurant picked in the Restaurants tab
   tab: string | null;
   year: number; // the year every view is showing
   act: Actions;
@@ -604,7 +608,7 @@ export function Search({ data, onNbhd, onBrand, inputRef }: { data: Data | null;
           {hits.map((h, i) => (
             <div key={h.kind === 'n' ? h.n.id : `b:${h.b.name}`}>
               {i === 0 && h.kind === 'n' && <p className="sf-results-head">Neighborhoods</p>}
-              {i === firstBrand && <p className="sf-results-head">Restaurants and chains</p>}
+              {i === firstBrand && <p className="sf-results-head">Restaurants and Chains</p>}
               <div id={`${listId}-${i}`} role="option" aria-selected={i === active} className="sf-result" onPointerEnter={() => setActive(i)} onPointerDown={(e) => e.preventDefault()} onClick={() => choose(h)}>
                 {h.kind === 'n' ? (
                   <>
@@ -927,7 +931,7 @@ function TopChains({ ctx, list, title, empty }: { ctx: Ctx; list: { b: Brand; co
 
 function CityView({ ctx }: { ctx: Ctx }) {
   const { data, boro } = ctx;
-  const tab = ctx.tab === 'rank' || ctx.tab === 'boros' ? ctx.tab : 'overview';
+  const tab = ctx.tab === 'rank' || ctx.tab === 'boros' || ctx.tab === 'restaurants' ? ctx.tab : 'overview';
   const c = data.city;
   const scope = boro ? data.ranked.filter((n) => n.boro === boro.key) : data.ranked;
   const most = scope[0];
@@ -960,6 +964,7 @@ function CityView({ ctx }: { ctx: Ctx }) {
         onChange={ctx.act.setTab}
         tabs={[
           { key: 'overview', label: 'Overview' },
+          { key: 'restaurants', label: 'Restaurants' },
           { key: 'rank', label: 'Ranking' },
           { key: 'boros', label: 'Boroughs' },
         ]}
@@ -1001,6 +1006,7 @@ function CityView({ ctx }: { ctx: Ctx }) {
             <SimHelp kind={ctx.simKind} />
           </>
         )}
+        {tab === 'restaurants' && <RestaurantList key={boro?.key ?? 'city'} data={data} scope={{ name: boro ? boro.label : 'New York City', boro: boro?.key }} pin={ctx.pin} onPin={ctx.act.pinPlace} onList={ctx.act.listPlaces} />}
         {tab === 'rank' && <Ranking ctx={ctx} />}
         {tab === 'boros' && (
           <>
@@ -1089,7 +1095,7 @@ function SimilarLists({ ctx, a, action }: { ctx: Ctx; a: Nbhd; action: string })
 
 function NbhdView({ ctx, n }: { ctx: Ctx; n: Nbhd }) {
   const { data } = ctx;
-  const tab = ctx.tab === 'similar' ? 'similar' : 'overview';
+  const tab = ctx.tab === 'similar' || ctx.tab === 'restaurants' ? ctx.tab : 'overview';
   const chains = useMemo(
     () =>
       data.brands
@@ -1123,6 +1129,7 @@ function NbhdView({ ctx, n }: { ctx: Ctx; n: Nbhd }) {
         onChange={ctx.act.setTab}
         tabs={[
           { key: 'overview', label: 'Overview' },
+          { key: 'restaurants', label: 'Restaurants' },
           { key: 'similar', label: 'Similar neighborhoods' },
         ]}
       />
@@ -1146,6 +1153,7 @@ function NbhdView({ ctx, n }: { ctx: Ctx; n: Nbhd }) {
             <ChainHelp />
           </>
         )}
+        {tab === 'restaurants' && <RestaurantList key={n.id} data={data} scope={{ name: n.name, nbhdId: n.id }} pin={ctx.pin} onPin={ctx.act.pinPlace} onList={ctx.act.listPlaces} />}
         {tab === 'similar' && (
           <>
             {n.simOk && (

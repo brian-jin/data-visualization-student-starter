@@ -2,7 +2,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { easeCubicOut, select, transition, zoom as d3zoom, zoomIdentity } from 'd3';
 import type { ZoomBehavior } from 'd3';
-import { MAP_SIZE, boroLabel } from './data';
+import { MAP_SIZE, TIERS, boroLabel } from './data';
 import type { Bounds, Brand, Data, Nbhd, Place } from './data';
 import { Icon, localPoint } from './ui';
 
@@ -33,8 +33,21 @@ interface Props {
   // The explorer's fit: the whole city fills nearly all of the free height, with a little more air at the sides, and the map keeps
   // the on-screen size it has at 100% browser zoom, so zooming the page out shrinks it with the interface.
   roomy?: boolean;
+  places?: Place[]; // every restaurant of a list, drawn as small dots
+  thin?: boolean; // a long list (a borough, the city): fewer dots when zoomed out, more as you zoom in
+  pin?: Place | null; // one of them picked from the list, highlighted
 }
-type Tip = { x: number; y: number; nbhd?: Nbhd; place?: Place; brand?: string };
+type Tip = { x: number; y: number; nbhd?: Nbhd; place?: Place; brand?: string; list?: Place[]; more?: number };
+
+// Restaurant dots, thinned the way the Week 12 map thins its pins: a fixed scattered order (so the same dots stay at every zoom),
+// and a minimum spacing in pixels that is wide when zoomed out and shrinks to nothing as you zoom in.
+const HIT = 9; // how close the pointer must be to a dot to read it, in pixels
+const HOVER_REL = 4; // on a thinned map, dots answer hover once the map is zoomed in this far (1 is the whole city)
+const MAX_TIP = 4; // restaurants listed when several dots sit on the same spot
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+// A fixed, scattered order that does not depend on the rest of the list, so narrowing the list keeps the dots that were showing
+const scatter = (p: Place) => Math.imul((Math.round(p.x * 100) * 73856093) ^ (Math.round(p.y * 100) * 19349663), 2654435761) >>> 0;
+const tierName = (t?: string) => TIERS.find((x) => x.key === t)?.label;
 
 void transition; // keeps d3-transition's selection.transition() in the bundle
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -80,7 +93,7 @@ const Dots = memo(function Dots({ brands }: { brands: Brand[] }) {
   );
 });
 
-export function MapView({ data, classes, activeClasses, describe, selId, cmpId, thirdId = null, hoverId, onHover, onSelect, brands, focusKey, focusBounds, pad, focusBoro = null, onBoro, interactive = true, roomy = false }: Props) {
+export function MapView({ data, classes, activeClasses, describe, selId, cmpId, thirdId = null, hoverId, onHover, onSelect, brands, focusKey, focusBounds, pad, focusBoro = null, onBoro, interactive = true, roomy = false, places, thin = false, pin = null }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
@@ -100,6 +113,98 @@ export function MapView({ data, classes, activeClasses, describe, selId, cmpId, 
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [tip, setTip] = useState<Tip | null>(null);
   const [keyboard, setKeyboard] = useState(false);
+  const tf = useRef({ x: 0, y: 0, k: 1 }); // where the map is now, for placing restaurant dots
+  const placeCase = useRef<SVGPathElement>(null);
+  const placeDot = useRef<SVGPathElement>(null);
+  const shown = useRef<{ xs: number[]; ys: number[]; at: number[] }>({ xs: [], ys: [], at: [] }); // the dots on screen, in pixels
+  const ordered = useMemo(() => (places ? [...places].sort((a, b) => scatter(a) - scatter(b)) : []), [places]);
+  const drawPlaces = useRef<() => void>(() => {});
+  const frame = useRef(0);
+  const schedulePlaces = useCallback(() => {
+    if (frame.current) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = 0;
+      drawPlaces.current();
+    });
+  }, []);
+  const relZoom = () => {
+    const w = wrapRef.current;
+    const base = w ? Math.min(w.clientWidth, w.clientHeight) / MAP_SIZE : 0;
+    return base ? Math.max(1, tf.current.k / base) : 1;
+  };
+  drawPlaces.current = () => {
+    const dot = placeDot.current;
+    const cs = placeCase.current;
+    const wrap = wrapRef.current;
+    if (!dot || !cs || !wrap) return;
+    const out = shown.current;
+    out.xs = [];
+    out.ys = [];
+    out.at = [];
+    if (!ordered.length) {
+      dot.setAttribute('d', '');
+      cs.setAttribute('d', '');
+      return;
+    }
+    const { x: tx, y: ty, k } = tf.current;
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    const rel = relZoom();
+    const r = Math.min(4, 1.8 + 0.75 * Math.log2(rel)); // dots grow with zoom
+    const t = clamp01(Math.log2(rel) / Math.log2(Math.max(2, 90 / (Math.min(w, h) / MAP_SIZE || 1))));
+    const gap = thin ? Math.max(26 * Math.pow(1 - t, 1.2), 2 * r * 1.15 * (1 - clamp01((rel - 20) / 20))) : 0;
+    const gcols = Math.ceil(w / (gap || 1)) + 1;
+    const grid = gap > 1.5 ? new Uint8Array(gcols * (Math.ceil(h / gap) + 1)) : null;
+    const pad = r * 2;
+    let d = '';
+    for (let i = 0; i < ordered.length; i++) {
+      const p = ordered[i];
+      const sx = tx + k * p.x;
+      const sy = ty + k * p.y;
+      if (!(sx >= -pad && sx <= w + pad && sy >= -pad && sy <= h + pad)) continue;
+      if (grid) {
+        const cell = Math.floor(Math.min(Math.max(sy, 0), h) / gap) * gcols + Math.floor(Math.min(Math.max(sx, 0), w) / gap);
+        if (grid[cell]) continue;
+        grid[cell] = 1;
+      }
+      out.xs.push(sx);
+      out.ys.push(sy);
+      out.at.push(i);
+      d += `M${p.x.toFixed(1)},${p.y.toFixed(1)}h0.01`;
+    }
+    dot.setAttribute('d', d);
+    cs.setAttribute('d', d);
+    dot.style.strokeWidth = `${2 * r}px`;
+    cs.style.strokeWidth = `${2 * r + 3}px`;
+  };
+  useEffect(() => {
+    schedulePlaces();
+  }, [ordered, thin, size, schedulePlaces]);
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(frame.current);
+      frame.current = 0; // a cancelled frame must not keep the next one from being scheduled
+    },
+    [],
+  );
+  // The dots near a point, nearest first. On a thinned map they answer only once the map is zoomed in some way.
+  const nearPlaces = (x: number, y: number) => {
+    if (!ordered.length || (thin && relZoom() < HOVER_REL)) return [];
+    const { xs, ys, at } = shown.current;
+    const found: { i: number; d: number }[] = [];
+    for (let j = 0; j < xs.length; j++) {
+      const dx = xs[j] - x;
+      const dy = ys[j] - y;
+      const d = dx * dx + dy * dy;
+      if (d <= HIT * HIT) found.push({ i: at[j], d });
+    }
+    return found.sort((a, b) => a.d - b.d).map((f) => f.i);
+  };
+  const placeTip = (x: number, y: number): Tip | null => {
+    const near = nearPlaces(x, y);
+    if (!near.length) return null;
+    return { x, y, list: near.slice(0, MAX_TIP).map((i) => ordered[i]), more: Math.max(0, near.length - MAX_TIP) };
+  };
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -139,6 +244,8 @@ export function MapView({ data, classes, activeClasses, describe, selId, cmpId, 
     else s.call(z.transform, t);
   }, []);
 
+  const schedulePlacesRef = useRef(schedulePlaces);
+  schedulePlacesRef.current = schedulePlaces;
   useEffect(() => {
     const svg = svgRef.current;
     const g = gRef.current;
@@ -151,6 +258,8 @@ export function MapView({ data, classes, activeClasses, describe, selId, cmpId, 
       ])
       .on('zoom', (e) => {
         g.setAttribute('transform', e.transform.toString());
+        tf.current = { x: e.transform.x, y: e.transform.y, k: e.transform.k };
+        schedulePlacesRef.current();
         svg.style.setProperty('--k', String(e.transform.k));
         svg.classList.toggle('is-close', e.transform.k > 2.4);
         svg.classList.toggle('is-near', e.transform.k > 6.5);
@@ -261,6 +370,12 @@ export function MapView({ data, classes, activeClasses, describe, selId, cmpId, 
         return;
       }
     }
+    const near = placeTip(x, y);
+    if (near && near.list) {
+      setTip(near);
+      onHover(near.list[0].nbhd);
+      return;
+    }
     const id = t.dataset?.id;
     const n = id ? data.byId.get(id) : undefined;
     if (n) {
@@ -286,6 +401,11 @@ export function MapView({ data, classes, activeClasses, describe, selId, cmpId, 
         setTip({ x, y, place, brand: brands[slot].name }); // touch: tap a dot to read it
         return;
       }
+    }
+    const touched = (e.nativeEvent as PointerEvent).pointerType === 'touch' ? placeTip(local(e).x, local(e).y) : null;
+    if (touched) {
+      setTip(touched);
+      return;
     }
     const boro = t.dataset?.boro;
     if (boro && onBoro) return onBoro(boro);
@@ -365,13 +485,39 @@ export function MapView({ data, classes, activeClasses, describe, selId, cmpId, 
             </g>
             {interactive && <NbhdLabels nbhds={data.ranked} />}
             <Dots brands={brands} />
+            <g className="sf-places" aria-hidden="true">
+              <path ref={placeCase} className="sf-places-case" d="" />
+              <path ref={placeDot} className="sf-places-dot" d="" />
+            </g>
+            {pin && (
+              <g className="sf-pin" aria-hidden="true">
+                <path className="sf-pin-halo" d={`M${pin.x.toFixed(2)},${pin.y.toFixed(2)}h0.01`} />
+                <path className="sf-pin-case" d={`M${pin.x.toFixed(2)},${pin.y.toFixed(2)}h0.01`} />
+                <path className="sf-pin-dot" d={`M${pin.x.toFixed(2)},${pin.y.toFixed(2)}h0.01`} />
+              </g>
+            )}
           </g>
         </g>
       </svg>
       {interactive && keyboard && <div className="sf-crosshair" style={{ left: centre().x, top: centre().y }} aria-hidden="true" />}
       {tip && (
         <div className={`sf-tip${flipX ? ' flip-x' : ''}${flipY ? ' flip-y' : ''}`} style={{ left: tip.x, top: tip.y }}>
-          {tip.place ? (
+          {tip.list ? (
+            <>
+              {tip.list.map((p, i) => (
+                <div key={i} className="sf-tip-row">
+                  <b>{p.name}</b>
+                  <span>
+                    {p.cuisine} · {data.byId.get(p.nbhd)?.name ?? ''}
+                  </span>
+                  <span className="sf-tip-meta">
+                    {p.tier && p.tier !== 'independent' ? `${tierName(p.tier)}${p.brand && !p.name.toLowerCase().startsWith(p.brand.toLowerCase()) ? `, ${p.brand}` : ''}` : 'Independent'}
+                  </span>
+                </div>
+              ))}
+              {tip.more ? <span className="sf-tip-meta">and {tip.more} more here. Zoom in to tell them apart.</span> : null}
+            </>
+          ) : tip.place ? (
             <>
               <b>{tip.place.name}</b>
               <span>

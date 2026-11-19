@@ -34,6 +34,7 @@ const ICONS: Record<string, ReactNode> = {
   play: <path d="M8 5.5v13l11-6.5z" />,
   pause: <path d="M8 5v14M16 5v14" />,
   sort: <path d="M8 5v14M8 19l-3-3M8 5l3 3M16 19V5M16 5l-3 3M16 19l3-3" />,
+  feedback: <path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8.5L6 19.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM8 9.5h8M8 12.5h5" />,
 };
 export function Icon({ name, size = 18 }: { name: keyof typeof ICONS | string; size?: number }) {
   return (

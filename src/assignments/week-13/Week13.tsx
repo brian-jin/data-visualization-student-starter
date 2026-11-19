@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './tokens.css';
 import './app.css';
+import './story.css';
 import {
   LATEST_YEAR,
   MIN_CHAIN_RESTAURANTS,
@@ -15,12 +16,13 @@ import {
   withSimKind,
   yearKind,
 } from './data';
-import type { Bounds, Brand, Data, Mode, Nbhd, SimKind } from './data';
+import type { Bounds, Brand, Data, Mode, Nbhd, Place, SimKind } from './data';
 import { ChangePlot, LENSES, MakeupPlot, TierGrid } from './lenses';
 import type { Lens } from './lenses';
 import { MapView } from './MapView';
 import type { Pad } from './MapView';
 import { Landing, Methodology } from './pages';
+import { Story } from './story';
 import { Icon, StateLink, useMedia, useUrl } from './ui';
 import type { Patch } from './ui';
 import {
@@ -101,6 +103,8 @@ function Explorer({
   const [sheet, setSheet] = useState<Sheet>('peek');
   const [preview, setPreview] = useState<number | null>(null);
   const [zoomTo, setZoomTo] = useState<string | null>(null); // neighborhood picked while a brand search is on
+  const [pin, setPin] = useState<Place | null>(null); // a restaurant picked from the neighborhood's list
+  const [listed, setListed] = useState<Place[]>([]); // the restaurants the Restaurants tab is listing, all drawn on the map
   const stageRef = useRef<HTMLDivElement>(null);
   const [stageH, setStageH] = useState(600);
   useEffect(() => {
@@ -210,7 +214,7 @@ function Explorer({
             d: null,
             cmp: null,
             boro: null,
-            tab: sp.get('tab') === 'similar' ? 'similar' : null,
+            tab: sp.get('tab') === 'similar' || sp.get('tab') === 'restaurants' ? sp.get('tab') : null,
           });
       },
       // Removing one promotes the ones after it, so A, B and C always fill from the front
@@ -253,10 +257,21 @@ function Explorer({
       },
       setBoro: (key) => set({ boro: key, n: null, c: null, d: null, cmp: null }),
       setTab: (t) => {
-        set({ tab: t === 'overview' || t === 'tiers' ? null : t }, true);
-        if (t === 'similar' && sel && sel.simOk) set({ m: 'sim', f: null }, true);
+        // One update, not two: two in the same tick are both built from the old address, and the second would undo the first
+        // Opening Similar neighborhoods colors the map by similarity; leaving it puts the map back to the default coloring
+        const leavingSimilar = sp.get('tab') === 'similar' && t !== 'similar';
+        set(
+          {
+            tab: t === 'overview' || t === 'tiers' ? null : t,
+            ...(t === 'similar' && sel && sel.simOk ? { m: 'sim', f: null } : {}),
+            ...(leavingSimilar && mode === 'sim' ? { m: null, f: null } : {}),
+          },
+          true,
+        );
       },
       focusSearch: () => searchRef.current?.focus(),
+      pinPlace: setPin,
+      listPlaces: setListed,
       setYear: (y) => {
         setPlaying(false);
         setYear(y);
@@ -282,6 +297,7 @@ function Explorer({
     classes,
     hoverId,
     setHover,
+    pin,
     tab: sp.get('tab'),
     year: shownYear,
     act,
@@ -343,6 +359,12 @@ function Explorer({
     if (boro) return { key: `b:${boro.key}`, bounds: boro.bounds };
     return { key: 'city', bounds: data.bounds };
   }, [brands, zoomTo, q, picking, pickingThird, sel, cmp, third, boro, data]);
+
+  // The picked restaurant belongs to the neighborhood, tab and year it was picked in
+  const tabNow = sp.get('tab');
+  useEffect(() => {
+    setPin(null);
+  }, [sel?.id, tabNow, shownYear]);
 
   // The row for the chips is always there (it always holds the year button), so adding or removing a filter never moves or rescales the view
   const pad: Pad = mobile
@@ -597,6 +619,9 @@ function Explorer({
             focusBounds={focus.bounds}
             pad={pad}
             roomy={!mobile}
+            places={tabNow === 'restaurants' && !cmp ? listed : undefined}
+            thin={!sel}
+            pin={tabNow === 'restaurants' && !cmp ? pin : null}
             focusBoro={boro?.key ?? null}
             onBoro={(key) => act.setBoro(boro?.key === key ? null : key)}
           />
@@ -736,6 +761,9 @@ function SectionNav({ view, href }: { view: string; href: (p: Patch) => string }
       <StateLink to={href({ v: 'map' })} aria-current={view === 'map' ? 'page' : undefined}>
         Map
       </StateLink>
+      <StateLink to={href({ v: 'story' })} aria-current={view === 'story' ? 'page' : undefined}>
+        Findings
+      </StateLink>
       <StateLink to={href({ v: 'method' })} aria-current={view === 'method' ? 'page' : undefined}>
         Methodology
       </StateLink>
@@ -744,11 +772,39 @@ function SectionNav({ view, href }: { view: string; href: (p: Patch) => string }
   );
 }
 
+// The feedback form is not made yet. Put its address here and the icon becomes a link that opens it in a new tab.
+const FEEDBACK_URL = '';
+function FeedbackLink() {
+  const ready = FEEDBACK_URL !== '';
+  // A one-icon slot in the header. On hover or focus the icon slides left and the words Feedback Form unroll beside it.
+  const inner = (
+    <>
+      <span className="sf-feedback-label" aria-hidden="true">
+        Feedback Form
+      </span>
+      <Icon name="feedback" size={18} />
+    </>
+  );
+  return (
+    <span className="sf-feedback-slot">
+      {ready ? (
+        <a className="sf-feedback" href={FEEDBACK_URL} target="_blank" rel="noopener noreferrer" aria-label="Feedback Form (opens in a new tab)">
+          {inner}
+        </a>
+      ) : (
+        <button type="button" className="sf-feedback" aria-disabled="true" aria-label="Feedback Form. It is not ready yet." title="Feedback Form coming soon">
+          {inner}
+        </button>
+      )}
+    </span>
+  );
+}
+
 function SameificationApp() {
   const [state, retry] = useData();
   const { sp, set, href } = useUrl();
   const v = sp.get('v');
-  const view = v === 'map' || v === 'method' ? v : 'home';
+  const view = v === 'map' || v === 'method' || v === 'story' ? v : 'home';
   const searchRef = useRef<HTMLInputElement>(null);
   const data = state.status === 'ready' ? state.data : null;
   // Moving between pages is one scene, not a cut. The page being left stays mounted for the length of the move, then goes.
@@ -769,11 +825,14 @@ function SameificationApp() {
   const methodLeaving = move?.from === 'method';
   const showHome = (view === 'home' && state.status !== 'error') || homeLeaving;
   const showMethod = view === 'method' || methodLeaving;
+  const storyLeaving = move?.from === 'story';
+  const showStory = view === 'story' || storyLeaving;
   useEffect(() => {
     const names: Record<string, string> = {
       home: 'Same-ification NYC',
       map: 'Map · Same-ification NYC',
       method: 'Methodology · Same-ification NYC',
+      story: 'Findings · Same-ification NYC',
     };
     const before = document.title;
     document.title = names[view];
@@ -792,34 +851,35 @@ function SameificationApp() {
           Same-ification <span>NYC</span>
         </StateLink>
         <SectionNav view={view} href={href} />
-        {view === 'map' && (
-          <div className={`sf-top-tools${toMap ? ' is-entering' : ''}`}>
-            <Search
-              data={data}
-              inputRef={searchRef}
-              onNbhd={(id) => {
-                // With restaurants on the map, a searched neighborhood is picked the way a click on the map picks it:
-                // the restaurants stay and the map zooms to the neighborhood
-                if ((sp.get('q') ?? '').split('|').some(Boolean)) {
-                  set({ n: id, boro: null });
-                  return;
-                }
-                // While comparing, a searched neighborhood becomes the second one instead of replacing the first
-                const first = sp.get('n');
-                const comparing = first && (sp.get('cmp') || sp.get('c'));
-                if (first && first !== id && comparing) {
-                  if (id === sp.get('c') || id === sp.get('d')) set({ cmp: null, q: null, tab: null });
-                  else if (sp.get('cmp') === '2' || sp.get('d')) set({ d: id, cmp: null, q: null, tab: null });
-                  else set({ c: id, cmp: null, q: null, tab: null });
-                } else set({ n: id, c: null, d: null, cmp: null, boro: null, q: null, tab: null });
-              }}
-              onBrand={(name) => {
-                const now = (sp.get('q') ?? '').split('|').filter((x) => x && x !== name);
-                set({ q: [...now.slice(-2), name].join('|') });
-              }}
-            />
-          </div>
-        )}
+        <div className={`sf-top-tools${view === 'map' && toMap ? ' is-entering' : ''}`}>
+          <FeedbackLink />
+          {view === 'map' && (
+              <Search
+                data={data}
+                inputRef={searchRef}
+                onNbhd={(id) => {
+                  // With restaurants on the map, a searched neighborhood is picked the way a click on the map picks it:
+                  // the restaurants stay and the map zooms to the neighborhood
+                  if ((sp.get('q') ?? '').split('|').some(Boolean)) {
+                    set({ n: id, boro: null });
+                    return;
+                  }
+                  // While comparing, a searched neighborhood becomes the second one instead of replacing the first
+                  const first = sp.get('n');
+                  const comparing = first && (sp.get('cmp') || sp.get('c'));
+                  if (first && first !== id && comparing) {
+                    if (id === sp.get('c') || id === sp.get('d')) set({ cmp: null, q: null, tab: null });
+                    else if (sp.get('cmp') === '2' || sp.get('d')) set({ d: id, cmp: null, q: null, tab: null });
+                    else set({ c: id, cmp: null, q: null, tab: null });
+                  } else set({ n: id, c: null, d: null, cmp: null, boro: null, q: null, tab: null });
+                }}
+                onBrand={(name) => {
+                  const now = (sp.get('q') ?? '').split('|').filter((x) => x && x !== name);
+                  set({ q: [...now.slice(-2), name].join('|') });
+                }}
+              />
+          )}
+        </div>
       </header>
       <div id="sf-main" className="sf-main">
         {showHome && (
@@ -840,7 +900,16 @@ function SameificationApp() {
             <Methodology data={data} mapHref={href({ v: 'map' })} entering={move?.to === 'method'} />
           </div>
         )}
-        {view === 'method' ? null : state.status === 'error' ? (
+        {showStory && (
+          <div
+            className={storyLeaving ? 'sf-leaving is-quick' : 'sf-home'}
+            aria-hidden={storyLeaving || undefined}
+            inert={storyLeaving}
+          >
+            <Story data={data} href={href} entering={move?.to === 'story'} />
+          </div>
+        )}
+        {view === 'method' || view === 'story' ? null : state.status === 'error' ? (
           <ErrorState message={state.message} retry={retry} />
         ) : view === 'map' ? (
           data ? (

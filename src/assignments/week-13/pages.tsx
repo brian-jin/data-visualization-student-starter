@@ -44,7 +44,7 @@ export function Landing({ data, href }: { data: Data | null; href: (p: Patch) =>
         <h1>Are neighborhoods in NYC truly losing their unique identities?</h1>
         {c && data ? (
           <p className="sf-landing-lede">
-            This map counts chain restaurants in {num(data.nbhds.length)} neighborhoods. Of {num(c.restaurants)} restaurants, {pct(c.chainShare)} belong to one of {num(c.chainBrands)} chains. In the median neighborhood the figure is {pct(c.medianShare)}. In {data.ranked[0].name} it is {pct(data.ranked[0].chainShare)}.{changeSummary(data).total ? ` Since 2022 the share has risen in ${changeSummary(data).up} of ${changeSummary(data).total} neighborhoods.` : ''}
+            This map counts chain restaurants in {num(data.nbhds.length)} neighborhoods. Of {num(c.restaurants)} restaurants, {pct(c.chainShare)} belong to one of {num(c.chainBrands)} chains. In the median neighborhood, the figure is {pct(c.medianShare)}. In {data.ranked[0].name} it is {pct(data.ranked[0].chainShare)}.{changeSummary(data).total ? ` Since 2022 the share has risen in ${changeSummary(data).up} of ${changeSummary(data).total} neighborhoods.` : ''}
           </p>
         ) : (
           <p className="sf-landing-lede" aria-hidden="true">
@@ -55,10 +55,13 @@ export function Landing({ data, href }: { data: Data | null; href: (p: Patch) =>
         )}
         <p className="sf-landing-actions">
           <StateLink to={href({ v: 'map' })} className="sf-btn is-primary is-large">
-            Open the map
+            Explore the Map
+          </StateLink>
+          <StateLink to={href({ v: 'story' })} className="sf-btn is-large">
+            Findings
           </StateLink>
           <StateLink to={href({ v: 'method' })} className="sf-btn is-large">
-            How it is measured
+            Methodology
           </StateLink>
         </p>
         {starts.length > 0 && (
@@ -115,10 +118,8 @@ export function Methodology({ data, mapHref, entering = false }: { data: Data | 
   return (
     <main className={`sf-page sf-method${entering ? ' is-entering' : ''}`}>
       <article>
+        <p className="sf-landing-sub">Mapping the Same-ification of NYC, From Blank Street to 7th Street</p>
         <h1>Methodology</h1>
-        <p className="sf-method-lede">
-          “Same-ification” is the worry that neighborhoods lose what sets them apart as the same businesses open everywhere. This project measures one part of it: how much of each neighborhood's restaurant scene belongs to chains, and how alike those chains are from one neighborhood to the next.
-        </p>
 
         <h2 id="chain">What counts as a chain</h2>
         <p>
@@ -233,7 +234,7 @@ export function Methodology({ data, mapHref, entering = false }: { data: Data | 
 
         <p className="sf-method-end">
           <StateLink to={mapHref} className="sf-btn is-primary is-large">
-            Open the map <Icon name="arrow" size={16} />
+            Explore the Map <Icon name="arrow" size={16} />
           </StateLink>
         </p>
       </article>

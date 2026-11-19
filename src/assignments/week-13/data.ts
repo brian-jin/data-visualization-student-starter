@@ -62,6 +62,8 @@ export interface Place {
   nbhd: string;
   x: number;
   y: number;
+  brand?: string; // the brand this restaurant belongs to (every independent is a brand of one)
+  tier?: Tier;
 }
 export interface Brand {
   name: string;
@@ -306,7 +308,7 @@ function build(geo: FeatureCollection<Geometry, RawProps>, rows: Record<string, 
     b.total++;
     b.nbhds.set(r.nbhd_id, (b.nbhds.get(r.nbhd_id) ?? 0) + 1);
     b.boros[r.boro] = (b.boros[r.boro] ?? 0) + 1;
-    b.places.push({ name: titleCase(r.name ?? '') || name, cuisine: r.cuisine?.trim() || 'Unknown', nbhd: r.nbhd_id, x: xy[0], y: xy[1] });
+    b.places.push({ name: titleCase(r.name ?? '') || name, cuisine: r.cuisine?.trim() || 'Unknown', nbhd: r.nbhd_id, x: xy[0], y: xy[1], brand: name, tier });
   }
   const brands = [...brandByName.values()].sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
   const chains = brands.filter((b) => b.tier !== 'independent');

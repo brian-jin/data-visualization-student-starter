@@ -1,0 +1,358 @@
+/* The Story page: text that scrolls on the left, a picture that stays on the right */
+
+.sf-story-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  min-height: 100%;
+}
+.sf-story-text {
+  padding: 0 var(--s-7) 0 var(--s-7);
+}
+.sf-story-intro {
+  padding: var(--s-7) 0 var(--s-5);
+}
+.sf-story-intro h1 {
+  font-size: var(--t-3xl);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.sf-story-lede {
+  max-width: 44ch;
+  margin-top: var(--s-4);
+  font-size: var(--t-md);
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.sf-story-wait {
+  display: grid;
+  gap: var(--s-2);
+}
+
+/* One step is a screenful of reading. The one crossing the middle of the page is full strength; the others step back. */
+.sf-step {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 82vh;
+  padding: var(--s-6) 0;
+  opacity: 0.32;
+  transition: opacity 280ms var(--ease);
+}
+.sf-step:last-child {
+  min-height: 100vh;
+  justify-content: flex-start;
+  padding-top: 18vh;
+}
+.sf-step.is-active {
+  opacity: 1;
+}
+.sf-step-n {
+  margin-bottom: var(--s-2);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+.sf-step h2 {
+  max-width: 18ch;
+  margin-bottom: var(--s-4);
+  font-size: var(--t-xl);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.sf-step p {
+  max-width: 46ch;
+  font-size: var(--t-md);
+  line-height: 1.6;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.sf-step p + p {
+  margin-top: var(--s-3);
+}
+.sf-step b {
+  font-weight: 700;
+  color: var(--ink);
+}
+.sf-story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-5) !important;
+}
+
+/* The picture is as tall as the visible page and stays put while the text moves */
+.sf-story-stage {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: var(--stage-h, 100vh);
+  background: var(--paper-2);
+  border-left: 1px solid var(--line);
+  overflow: hidden;
+}
+.sf-vis {
+  position: absolute;
+  inset: var(--s-6) var(--s-6) 72px;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 320ms var(--ease), visibility 0s linear 320ms;
+}
+.sf-vis[data-on='1'] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 320ms var(--ease) 80ms, visibility 0s;
+}
+.sf-vis-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.sf-vis-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: var(--water);
+  border-radius: var(--r-md);
+}
+
+/* Chart marks (the numbers inside a picture are in picture units, so they scale with it) */
+.sf-vis-svg text {
+  fill: var(--ink-2);
+  font-family: var(--font);
+  font-size: 13px;
+}
+.sf-vis-title {
+  font-weight: 650;
+  fill: var(--ink) !important;
+  font-size: 14px !important;
+}
+.sf-vis-tick {
+  font-size: 12px !important;
+  fill: var(--ink-3) !important;
+}
+.sf-vis-tick.is-strong {
+  fill: var(--ink) !important;
+  font-weight: 650;
+}
+.sf-vis-label {
+  fill: var(--ink) !important;
+  font-size: 14px !important;
+}
+.sf-vis-label.is-left {
+  font-size: 13px !important;
+}
+.sf-vis-value {
+  fill: var(--ink) !important;
+  font-size: 14px !important;
+  font-weight: 700;
+}
+.sf-vis-sub,
+.sf-vis-note {
+  fill: var(--ink-3) !important;
+  font-size: 12px !important;
+}
+.sf-vis-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.sf-vis-axis {
+  stroke: var(--line-strong);
+  stroke-width: 1.5;
+}
+.sf-vis-bar {
+  fill: var(--accent);
+}
+.sf-vis-bar.is-down {
+  fill: var(--ramp-3);
+}
+.sf-vis-bin {
+  fill: var(--ramp-3);
+}
+/* Big chains sit back so the mini and mid-size chains, which grew about as much, stand out */
+.sf-vis-bar.is-big {
+  fill: var(--line-strong);
+}
+.sf-vis-row.is-muted .sf-vis-label,
+.sf-vis-row.is-muted .sf-vis-value {
+  fill: var(--ink-3) !important;
+  font-weight: 500;
+}
+.sf-vis-median line {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+.sf-vis-median text {
+  fill: var(--ink) !important;
+}
+.sf-vis-dot {
+  fill: var(--paper-2);
+  stroke: var(--line-strong);
+  stroke-width: 2;
+}
+.sf-vis-dot.is-real {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+.sf-vis-legend text {
+  font-size: 11.5px !important;
+}
+
+/* Marks arrive when their step does. Only transform and opacity move. */
+.sf-vis-col[data-on='1'] rect {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: sf-vis-grow 520ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.sf-vis-bin[data-on='1'] {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: sf-vis-grow 520ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+.sf-vis-row[data-on='1'] {
+  animation: sf-vis-in 420ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+.sf-vis-median[data-on='1'] {
+  animation: sf-vis-in 420ms var(--ease) 420ms both;
+}
+@keyframes sf-vis-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes sf-vis-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+
+/* Progress: one dot per step, each a button that scrolls to it */
+.sf-story-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--s-5);
+  display: flex;
+  justify-content: center;
+  gap: var(--s-2);
+}
+.sf-story-dots button {
+  display: block;
+  width: 28px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+.sf-story-dots button::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 8px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+  transition: background-color var(--med) var(--ease);
+}
+.sf-story-dots button[aria-current='step']::after {
+  background: var(--accent);
+}
+.sf-story-dots button:hover::after {
+  background: var(--ink-3);
+}
+.sf-story-dots button[aria-current='step']:hover::after {
+  background: var(--accent);
+}
+
+.sf-story.is-entering .sf-story-grid {
+  animation: sf-rise-in 260ms var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-vis-col[data-on='1'] rect,
+  .sf-vis-bin[data-on='1'],
+  .sf-vis-row[data-on='1'],
+  .sf-vis-median[data-on='1'],
+  .sf-story.is-entering .sf-story-grid {
+    animation: none;
+  }
+  .sf-step,
+  .sf-vis,
+  .sf-vis[data-on='1'] {
+    transition: none;
+  }
+}
+
+/* Phones: the picture sits at the top and the text slides over it */
+@media (max-width: 760px) {
+  .sf-story-grid {
+    display: flex;
+    flex-direction: column;
+  }
+  .sf-story-stage {
+    order: -1;
+    align-self: stretch;
+    height: 40vh;
+    z-index: 2;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .sf-story-text {
+    position: relative;
+    z-index: 1;
+    padding: 0 var(--s-4);
+  }
+  .sf-vis {
+    inset: var(--s-3) var(--s-3) 40px;
+  }
+  .sf-story-dots {
+    bottom: var(--s-2);
+  }
+  .sf-story-intro {
+    padding-top: var(--s-5);
+  }
+  .sf-step {
+    min-height: 70vh;
+    background: var(--paper);
+    padding: var(--s-5) 0;
+  }
+  .sf-step:last-child {
+    min-height: 70vh;
+    padding-top: var(--s-5);
+  }
+}
+
+/* Dumbbell rows: a line between the two years */
+.sf-vis-span {
+  stroke: var(--line-strong);
+  stroke-width: 3;
+}
+.sf-vis-legend .sf-vis-dot {
+  stroke-width: 2;
+}
+
+/* The change under a neighborhood's name: accent for a rise, the teal for a fall */
+.sf-vis-delta {
+  fill: var(--accent) !important;
+  font-size: 14px !important;
+  font-weight: 700;
+}
+.sf-vis-delta.is-down {
+  fill: var(--ramp-3) !important;
+}

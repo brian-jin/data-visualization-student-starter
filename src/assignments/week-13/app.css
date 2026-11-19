@@ -27,6 +27,7 @@
 @media (min-width: 761px) {
   .sf {
     zoom: var(--ui-scale);
+    --t-floor: calc(12px / var(--ui-scale));
   }
 }
 .sf *,
@@ -121,7 +122,7 @@
   align-items: center;
   padding: 0 var(--s-3);
   color: var(--on-dark-2);
-  font-size: var(--t-sm);
+  font-size: var(--t-base); /* the same size as the Feedback Form label */
   font-weight: 600;
   box-shadow: inset 0 -3px 0 transparent;
   transition: color var(--fast), box-shadow var(--fast);
@@ -155,6 +156,73 @@
   align-items: center;
   gap: var(--s-2);
   min-width: 0;
+}
+.sf-feedback-slot {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
+/* The link is as wide as the words and the icon, drawn from the right edge of the slot. Only the last 36px show until it is
+   hovered, then the rest is revealed to the left. Reveal and label both use transform, opacity and clip-path only. */
+.sf-feedback {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 9px 0 14px;
+  border-radius: var(--r-sm);
+  color: var(--on-dark-2);
+  white-space: nowrap;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  background: transparent;
+  clip-path: inset(0 0 0 calc(100% - 36px) round var(--r-sm));
+  transition: clip-path 260ms var(--ease), background-color var(--fast), color var(--fast);
+}
+.sf-feedback-label {
+  font-size: var(--t-base);
+  font-weight: 600;
+  opacity: 0;
+  transform: translateX(14px);
+  transition: opacity 200ms ease, transform 260ms var(--ease);
+}
+.sf-feedback > svg {
+  flex: none;
+}
+.sf-feedback[aria-disabled='true'] {
+  cursor: default;
+}
+.sf-feedback:hover,
+.sf-feedback:focus-visible {
+  clip-path: inset(0 0 0 0 round var(--r-sm));
+  background: rgb(255 255 255 / 0.12);
+  color: var(--on-dark);
+}
+.sf-feedback:hover .sf-feedback-label,
+.sf-feedback:focus-visible .sf-feedback-label {
+  opacity: 1;
+  transform: none;
+  transition-delay: 60ms;
+}
+/* Touch has no hover, and on a phone the slot sits at the left edge with nothing to grow into: it stays an icon */
+@media (hover: none), (max-width: 760px) {
+  .sf-feedback {
+    clip-path: none;
+    padding: 0 9px;
+  }
+  .sf-feedback-label {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-feedback,
+  .sf-feedback-label {
+    transition: none;
+  }
 }
 /* ---------- Search ---------- */
 .sf-search {
@@ -202,21 +270,27 @@
   border-radius: var(--r-md);
   box-shadow: 0 2px 6px var(--shadow-soft), 0 12px 32px var(--shadow);
 }
+/* A group name is bold and larger on a tinted band, and the results under it are smaller and indented, so the two read as different things */
 .sf-results-head {
-  padding: var(--s-2) var(--s-2) var(--s-1);
-  font-size: var(--t-xs);
-  font-weight: 600;
+  padding: 7px var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--paper-2);
+  font-size: var(--t-md);
+  font-weight: 700;
   color: var(--ink-3);
+}
+.sf-result + .sf-results-head {
+  margin-top: var(--s-2);
 }
 .sf-result {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: var(--s-3);
-  padding: 7px var(--s-2);
+  padding: 7px var(--s-2) 7px var(--s-3);
   border-radius: var(--r-sm);
   font-size: var(--t-sm);
-  font-weight: 550;
+  font-weight: 500;
   cursor: pointer;
 }
 .sf-result[aria-selected='true'] {
@@ -358,6 +432,13 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+}
+/* On the map page, and in the search above it, text never goes under the floor. The scale tokens keep their order and rise to it. */
+.sf-explorer,
+.sf-search {
+  --t-xs: max(0.75rem, var(--t-floor));
+  --t-sm: max(0.8125rem, var(--t-floor));
+  --t-base: max(0.9375rem, var(--t-floor));
 }
 .sf-explorer {
   flex: 1;
@@ -670,7 +751,7 @@
   width: 18px;
   height: 18px;
   border-radius: var(--r-sm);
-  font-size: 0.6875rem;
+  font-size: max(0.6875rem, var(--t-floor));
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1;
@@ -788,7 +869,7 @@
 }
 .sf-boro-label {
   cursor: pointer;
-  font-size: calc(12px / var(--k));
+  font-size: calc(max(12px, var(--t-floor)) / var(--k));
   font-weight: 650;
   fill: var(--ink);
   stroke: var(--paper);
@@ -1162,6 +1243,7 @@
   gap: var(--s-3);
 }
 .sf-tiergrid figure {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1208,7 +1290,7 @@
 .sf-minikey {
   display: flex;
   gap: 2px;
-  font-size: 0.6875rem;
+  font-size: max(0.6875rem, var(--t-floor));
   line-height: 1.3;
   color: var(--ink-2);
 }
@@ -1220,7 +1302,7 @@
 }
 @media (max-width: 1180px) {
   .sf-minikey {
-    font-size: 0.625rem;
+    font-size: max(0.625rem, var(--t-floor));
     letter-spacing: -0.02em;
   }
 }
@@ -1255,7 +1337,7 @@
   stroke-dasharray: 3 3;
 }
 .sf-plot-end {
-  font-size: 12px;
+  font-size: max(12px, var(--t-floor));
   font-weight: 600;
   fill: var(--ink-2);
 }
@@ -1293,7 +1375,7 @@
   stroke-width: 3.5px;
 }
 .sf-plot-label {
-  font-size: 11.5px;
+  font-size: max(11.5px, var(--t-floor));
   font-weight: 600;
   fill: var(--ink);
   stroke: var(--paper);
@@ -1530,7 +1612,7 @@
   font-variant-numeric: tabular-nums;
 }
 .sf-yl-label {
-  font-size: 11.5px;
+  font-size: max(11.5px, var(--t-floor));
   font-weight: 500;
   fill: var(--ink-2);
 }
@@ -2200,7 +2282,7 @@
   overflow: visible;
 }
 .sf-strip-label {
-  font-size: 12px;
+  font-size: max(12px, var(--t-floor));
   font-weight: 550;
   fill: var(--ink-2);
 }
@@ -2209,7 +2291,7 @@
   fill: var(--ink);
 }
 .sf-strip-tick {
-  font-size: 11px;
+  font-size: max(11px, var(--t-floor));
   fill: var(--ink-3);
 }
 .sf-strip-grid {
@@ -2394,10 +2476,11 @@
   padding: var(--s-7) var(--s-5) var(--s-8);
 }
 .sf-method h1 {
-  font-size: var(--t-2xl);
+  font-size: var(--t-3xl); /* the same size as the headings of the landing and Findings pages */
   font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 .sf-method-lede {
   margin-top: var(--s-4);
@@ -2407,14 +2490,16 @@
   text-wrap: pretty;
 }
 .sf-method h2 {
-  margin: var(--s-7) 0 var(--s-2);
-  font-size: var(--t-lg);
+  margin: var(--s-7) 0 var(--s-3);
+  font-size: var(--t-xl);
   font-weight: 700;
-  letter-spacing: -0.015em;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 .sf-method p,
 .sf-method li {
-  font-size: var(--t-base);
+  font-size: var(--t-md); /* the same size as the text of the landing and Findings pages */
   line-height: 1.6;
   color: var(--ink-2);
   text-wrap: pretty;
@@ -2435,7 +2520,7 @@
 }
 .sf-spec.is-wide {
   margin: var(--s-4) 0;
-  font-size: var(--t-base);
+  font-size: var(--t-md);
 }
 .sf-spec.is-wide th,
 .sf-spec.is-wide td {
@@ -2497,7 +2582,7 @@
   opacity: 1;
 }
 .sf-nbhd-label {
-  font-size: calc(11px / var(--k));
+  font-size: calc(max(11px, var(--t-floor)) / var(--k));
   font-weight: 600;
   fill: var(--ink);
   stroke: var(--paper);
@@ -2507,7 +2592,7 @@
   pointer-events: none;
 }
 .sf-kpis {
-  min-height: 144px; /* tall enough for the "since 2022" lines, so the page does not move when they come and go */
+  min-height: 164px; /* tall enough for the tallest figures with the larger text, so switching years does not move the page */
 }
 /* The comparison with 2022 under a figure: bold, in the accent */
 .sf-kpi-delta {
@@ -2546,7 +2631,7 @@
 }
 .sf-dist-end {
   flex: none;
-  font-size: 0.6875rem;
+  font-size: max(0.6875rem, var(--t-floor));
   line-height: 1;
   color: var(--ink-3);
 }
@@ -2740,7 +2825,7 @@
     font-size: var(--t-xs);
   }
   .sf-minikey {
-    font-size: 0.625rem;
+    font-size: max(0.625rem, var(--t-floor));
   }
   .sf-plot {
     flex: none;
@@ -2783,7 +2868,7 @@
     height: auto;
     min-height: 44px;
     padding: 4px 2px;
-    font-size: 0.6875rem;
+    font-size: max(0.6875rem, var(--t-floor));
     text-align: center;
     align-content: center;
   }
@@ -2977,7 +3062,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.6875rem;
+    font-size: max(0.6875rem, var(--t-floor));
   }
   .sf-kpi-values {
     flex-wrap: wrap;
@@ -2991,7 +3076,7 @@
   .sf-kpi-value .sf-tag {
     width: 14px;
     height: 14px;
-    font-size: 0.5625rem;
+    font-size: max(0.5625rem, var(--t-floor));
   }
   .sf-kpi-note,
   .sf-kpi-delta {
@@ -2999,7 +3084,7 @@
   }
   .sf-kpi-short {
     display: block;
-    font-size: 0.6875rem;
+    font-size: max(0.6875rem, var(--t-floor));
     line-height: 1.25;
     color: var(--ink-2);
   }
@@ -3262,4 +3347,150 @@
   grid-template-columns: minmax(0, 1fr) 72px 24px;
   align-items: center;
   gap: 8px;
+}
+
+/* Restaurants tab */
+.sf-rtools {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+.sf-rtools label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  font-size: var(--t-sm);
+  font-weight: 600;
+}
+.sf-rtools select {
+  height: 32px;
+  min-width: 170px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-size: var(--t-sm);
+  font-weight: 400;
+}
+/* The search: a magnifier at the end of the row. Opened, a field grows out from it to the left, over the cuisine filter. */
+.sf-rtools {
+  position: relative;
+  min-height: 32px;
+}
+.sf-rsearch {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 32px;
+  background: var(--paper);
+  clip-path: inset(0 0 0 calc(100% - 32px));
+  transition: clip-path 260ms var(--ease);
+  pointer-events: none;
+}
+.sf-rsearch.is-open {
+  clip-path: inset(0 0 0 0);
+}
+.sf-rsearch .sf-iconbtn,
+.sf-rsearch input {
+  pointer-events: auto;
+}
+.sf-rsearch input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font-size: var(--t-sm);
+}
+.sf-rsearch:not(.is-open) input {
+  visibility: hidden;
+  transition: visibility 0s linear 260ms;
+}
+.sf-rsearch input::-webkit-search-cancel-button {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-rsearch {
+    transition: none;
+  }
+}
+.sf-rtable tbody tr {
+  cursor: pointer;
+}
+.sf-rtable tbody tr:hover {
+  background: var(--paper-2);
+}
+.sf-rtable tbody tr.is-selected {
+  background: var(--accent-b-soft);
+}
+.sf-rtable tbody th {
+  overflow-wrap: anywhere;
+  padding-right: var(--s-2);
+}
+.sf-rtable td {
+  padding-right: var(--s-2);
+  color: var(--ink-2);
+}
+.sf-rtable td.is-quiet {
+  color: var(--ink-3);
+}
+/* Every restaurant in the list: a small accent dot with a white outline, like the dots of a searched brand */
+.sf-places-case,
+.sf-places-dot {
+  fill: none;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.sf-places-case {
+  stroke: var(--white);
+  stroke-width: 9px;
+}
+.sf-places-dot {
+  stroke: var(--accent);
+  stroke-width: 6.5px;
+}
+/* The restaurant chosen from the list: a halo, a white outline and a larger dot in the second accent, so it stands out from the first-accent dots around it */
+.sf-pin-halo,
+.sf-pin-case,
+.sf-pin-dot {
+  fill: none;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.sf-pin-halo {
+  stroke: var(--accent-b);
+  stroke-width: 48px;
+  opacity: 0.34;
+}
+.sf-pin-case {
+  stroke: var(--white);
+  stroke-width: 22px;
+}
+.sf-pin-dot {
+  stroke: var(--accent-b);
+  stroke-width: 15px;
+}
+
+.sf-rmore {
+  margin-top: var(--s-3);
+  text-align: center;
+}
+
+.sf-tip-row {
+  display: flex;
+  flex-direction: column;
+}
+.sf-tip-row + .sf-tip-row {
+  margin-top: var(--s-2);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--line);
 }

@@ -4,6 +4,8 @@
 .sf {
   /* How big the interface is drawn on desktop, as a share of its design size. 0.8 is how it looks with the browser zoomed out to 80%. */
   --ui-scale: 0.8;
+  /* The smallest text on the map page, 12px as it is seen. Under the desktop scale it is drawn bigger in the code so it still lands on 12px. */
+  --t-floor: 12px;
 
   /* Sequential choropleth ramp (the owner's teal ramp, unchanged). Used by every map mode. */
   --ramp-1: #c9e4ca;
