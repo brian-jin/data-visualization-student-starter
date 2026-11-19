@@ -57,7 +57,7 @@
   color: var(--ink-3);
 }
 .sf-step h2 {
-  max-width: 18ch;
+  max-width: 30ch;
   margin-bottom: var(--s-4);
   font-size: var(--t-xl);
   font-weight: 700;

@@ -611,28 +611,28 @@ export function Story({ data, href, entering = false }: { data: Data | null; hre
     return [
       {
         id: 'question',
-        title: 'What this checks',
+        title: 'Have the same restaurants been popping up around NYC?',
         body: (
           <>
-            <p>“Same-ification” is the worry that neighborhoods lose what sets them apart as the same businesses open everywhere. This project tests it with restaurants.</p>
+            <p>Inspired by Infatuation NYC, “same-ification” is the phenomenon that neighborhoods are losing what sets them apart as the same businesses open everywhere. To break down the trends, this project maps every restaurant in the city's health inspection records to one of {num(data.nbhds.length)} neighborhoods.</p>
             <p>
-              Every restaurant in the city's health inspection records is placed in one of {num(data.nbhds.length)} neighborhoods. A brand with three or more locations in the five boroughs counts as a chain. The map shades each neighborhood by the share of its restaurants that are chains. Darker means more.
+               A restaurant with three or more locations in the five boroughs counts as a chain. The map shades each neighborhood by the share of its restaurants that are chains. Chains are further grouped by tier: mini chains have 3 to 9 locations, mid-size chains have 10 to 49, and big chains have 50 or more, allowing us to differentiate between well-established chains, think Dunkin or McDonald's, against smaller chains, such as Sweetgreen or Blank Street.
             </p>
           </>
         ),
       },
       {
         id: 'share',
-        title: 'More of the city is chains',
+        title: 'The chain share is increasing',
         body: (
           <>
             <p>
-              In 2026, {pen ? pts(pen.v2026) : 'a share'} of the {num(data.city.restaurants)} restaurants are chains. In March 2022 it was {pen ? pts(pen.v2022) : 'lower'}
-              {pen ? `, so the share is up ${(pen.change * 100).toFixed(1)} points` : ''}.
+              According to official 2026 city inspection data, New York City boats over {num(data.city.restaurants)} restaurants. {pen ? pts(pen.v2026) : 'a share'} of these restaurants are chains. In March 2022, it was {pen ? pts(pen.v2022) : 'lower'}
+              {pen ? `, so the share went up ${(pen.change * 100).toFixed(1)} points` : ''}.
             </p>
             {mini && mid && big && (
               <p>
-                Smaller chains account for the gain. Brands with 3 to 9 locations went from {pts(mini.v2022)} to {pts(mini.v2026)} of all restaurants, and brands with 10 to 49 went from {pts(mid.v2022)} to {pts(mid.v2026)}. Brands with 50 or more went from {pts(big.v2022)} to {pts(big.v2026)}.
+                Smaller chains account for the increase. Mini chains (restaurants with 3 to 9 locations) went from {pts(mini.v2022)} to {pts(mini.v2026)} of all restaurants, and mid-size chains (10 to 49 locations) went from {pts(mid.v2022)} to {pts(mid.v2026)}. Big chains (50 or more locations) actually decreased from {pts(big.v2022)} to {pts(big.v2026)}.
               </p>
             )}
           </>
@@ -645,8 +645,8 @@ export function Story({ data, href, entering = false }: { data: Data | null; hre
           <>
             <p>
               {allRose ? 'Chain share rose in all five boroughs between 2022 and 2026.' : 'Chain share changed in different ways across the boroughs between 2022 and 2026.'}
-              {byGain.length > 2 ? ` ${lead(byGain[0].label)} and ${mid2(byGain[1].label)} gained the most, ${byGain[0].gain.toFixed(1)} and ${byGain[1].gain.toFixed(1)} points. ${lead(byGain[byGain.length - 1].label)} gained the least, ${byGain[byGain.length - 1].gain.toFixed(1)} points.` : ''}
-              {byShare.length > 1 ? ` ${lead(byShare[0].label)} is the most chain-heavy borough at ${pts(byShare[0].now)}, and ${mid2(byShare[byShare.length - 1].label)} the least at ${pts(byShare[byShare.length - 1].now)}.` : ''}
+              {byGain.length > 2 ? ` ${lead(byGain[0].label)} and ${mid2(byGain[1].label)} gained the most, by ${byGain[0].gain.toFixed(1)} and ${byGain[1].gain.toFixed(1)} points, respectively. ${lead(byGain[byGain.length - 1].label)} gained the least, ${byGain[byGain.length - 1].gain.toFixed(1)} points.` : ''}
+              {byShare.length > 1 ? ` ${lead(byShare[0].label)} is the most chain-heavy borough at ${pts(byShare[0].now)}, and ${mid2(byShare[byShare.length - 1].label)} the least chain-heavy at ${pts(byShare[byShare.length - 1].now)}.` : ''}
             </p>
           </>
         ),
@@ -657,7 +657,7 @@ export function Story({ data, href, entering = false }: { data: Data | null; hre
         body: (
           <>
             <p>
-              Between 2022 and 2026, chain share rose in {ch.up} of {ch.total} neighborhoods and fell in {ch.down}. The rest did not change.
+              Despite the total borough count, between 2022 and 2026, chain share rose in {ch.up} of {ch.total} neighborhoods and fell in {ch.down}. The rest did not change.
             </p>
             {bySplit.length > 1 && (
               <p>
@@ -670,22 +670,22 @@ export function Story({ data, href, entering = false }: { data: Data | null; hre
       },
       {
         id: 'brands',
-        title: 'Growth is spread across many brands',
+        title: 'Growth is spread across chains',
         body: (
           <>
             <p>
               {biggest && topShare ? `${biggest} is still the largest chain, but its share of chain locations fell from ${pts(topShare.v2022)} to ${pts(topShare.v2026)}. ` : ''}
-              {top10 ? `The ten biggest brands together went from ${pts(top10.v2022)} to ${pts(top10.v2026)}. ` : ''}
-              {bc ? `Over the same years the number of chain brands rose from ${num(bc.v2022)} to ${num(bc.v2026)}.` : ''}
+              {top10 ? `The ten biggest chains went from ${pts(top10.v2022)} to ${pts(top10.v2026)}. ` : ''}
+              {bc ? `Over the years, the number of chain brands rose from ${num(bc.v2022)} to ${num(bc.v2026)}.` : ''}
             </p>
             {blank && seventh && (
               <p>
-                {blank.label} grew from {blank.was} to {blank.now} locations and {seventh.label} from {seventh.was} to {seventh.now}.
+                This graph shows the chains with the most locations added. Drawing attention to smaller chains that have recently gained prominence, such as {blank.label}, which grew from {blank.was} to {blank.now} locations and also {seventh.label}, from {seventh.was} to {seventh.now}.
               </p>
             )}
             {midAdds > 0 && bestMid && bestBig && (
               <p>
-                {word(midAdds)} of the {word(topAdds.length).toLowerCase()} chains that added the most locations are mid-size chains. Their gains come close to the biggest chain's: {bestMid.label} added {bestMid.now - bestMid.was} locations and {bestBig.label} added {bestBig.now - bestBig.was}.
+                {word(midAdds)} of the {word(topAdds.length).toLowerCase()} chains that added the most locations are mid-size chains. Their gains are as much as the biggest chain's: {bestMid.label} added {bestMid.now - bestMid.was} locations and {bestBig.label} added {bestBig.now - bestBig.was}.
               </p>
             )}
           </>
@@ -693,13 +693,13 @@ export function Story({ data, href, entering = false }: { data: Data | null; hre
       },
       {
         id: 'closeup',
-        title: 'Two neighborhoods that started level',
+        title: 'Let\'s zoom into influential neighborhoods',
         body: (
           <>
             {wb && so && (
               <>
                 <p>
-                  In 2022, {pts(wb.y22.chain)} of Williamsburg's restaurants were chains, and {pts(so.y22.chain)} of SoHo's. By 2026 Williamsburg was at {pts(wb.y26.chain)} and SoHo at {pts(so.y26.chain)}. Williamsburg added {wb.y26.n - wb.y22.n} restaurants and SoHo added {so.y26.n - so.y22.n}.
+                  In 2022, {pts(wb.y22.chain)} of Williamsburg's restaurants were chains, and {pts(so.y22.chain)} of SoHo's. By 2026, Williamsburg was at {pts(wb.y26.chain)} and SoHo at {pts(so.y26.chain)}. Williamsburg added {wb.y26.n - wb.y22.n} restaurants and SoHo added {so.y26.n - so.y22.n}.
                 </p>
                 <p>
                   In Williamsburg, mini and mid-size chain restaurants went from {smallChains(wb.y22.counts)} to {smallChains(wb.y26.counts)}, while big chains went from {wb.y22.counts.big_chain} to {wb.y26.counts.big_chain}. SoHo's mini and mid-size chains went from {smallChains(so.y22.counts)} to {smallChains(so.y26.counts)}, and its independents from {so.y22.counts.independent} to {so.y26.counts.independent}.
@@ -714,10 +714,22 @@ export function Story({ data, href, entering = false }: { data: Data | null; hre
         title: 'Similarity between neighborhoods',
         body: (
           <>
-            <p>Chain share counts chains. It does not say whether two neighborhoods have the same ones. So each neighborhood also gets a similarity score from 0 to 100: the average of how closely its chain mix matches each other neighborhood's.</p>
+            <p>Chain share counts chains. It does not say whether two neighborhoods have the same ones. So each neighborhood also gets a similarity score from 0 to 100: the average of how closely its chain mix matches each other neighborhood's. A score of 100 means the neighborhoods are identical in their chain mix.</p>
             <p>
               The median score is {score(data.city.medianSim)} in 2026
               {was === null ? '.' : data.city.medianSim < was ? `. In 2022 it was ${score(was)}, so by this measure neighborhoods are slightly less alike than before, even though chain share went up.` : `, up from ${score(was)} in 2022.`} No neighborhood scores above {Math.round(Math.max(0, ...data.ranked.map((n) => (n.simScore ?? 0) * 100)))}.
+            </p>
+          </>
+        ),
+      },
+      {
+        id: 'conclusion',
+        title: 'So, are neighborhoods truly losing their unique identities?',
+        body: (
+          <>
+            <p>
+               Although more of the city's restaurants are chains, the growth is spread across many smaller brands and is uneven from one neighborhood to the next, rather than one chain taking over. Do note the rise of chains such as Blank Street and 7th Street Burger, which are not the biggest chains but are growing quickly. Perhaps, not enough time has passed yet for the story to fully unfold.
+              {was !== null ? ` Despite this, neighborhoods remain distinct from each other: the median similarity score is ${score(data.city.medianSim)}, ${data.city.medianSim < was ? `down from ${score(was)} in 2022` : `compared with ${score(was)} in 2022`}.` : ''} Chains are growing, but restaurants alone will not settle whether a neighborhood has lost its individuality.
             </p>
           </>
         ),
@@ -727,8 +739,8 @@ export function Story({ data, href, entering = false }: { data: Data | null; hre
         title: 'Limits of the data',
         body: (
           <>
-            <p>The data comes from the city's restaurant inspection records. There are two full files, one from March 2022 and one from 2026. The years between are estimated from inspection dates, so treat them as rough. A restaurant that closed between the two files drops out, and the year it closed is not known.</p>
-            <p>A chain is a count of locations, not a verdict on quality. An independent restaurant can serve the same food as a chain. This measures chain presence, which is one way a neighborhood can come to look like others.</p>
+            <p>The data comes from the city's restaurant inspection records. There are two snapshots, one from March 2022 and one from 2026. The years between are estimated from inspection dates. A restaurant that closed between the two files drops, and the year it closed is not known.</p>
+            <p>A chain is a count of locations city-wide, not internationally. </p>
             <p className="sf-story-actions">
               <StateLink to={href({ v: 'map' })} className="sf-btn is-primary is-large">
                 Explore the Map
@@ -815,6 +827,8 @@ export function Story({ data, href, entering = false }: { data: Data | null; hre
                     <CloseUps data={data} on={on} />
                   ) : st.id === 'alike' ? (
                     <SimilarityHistogram data={data} was={was} on={on} />
+                  ) : st.id === 'conclusion' ? (
+                    <ChainMap data={data} />
                   ) : (
                     <SourceTimeline on={on} />
                   );
