@@ -241,7 +241,7 @@ const since = (now: number, then: number, unit: 'pts' | 'count') => {
 };
 const signed = (d: number) => (d === 0 ? 'level with' : `${d > 0 ? '+' : '\u2212'}${Math.abs(d)} vs`);
 
-function kpiCells(ctx: Ctx): { scope: string; pair?: [string, string]; sub: string; neutral: boolean; cells: Cell[] } {
+function kpiCells(ctx: Ctx): { scope: string; pair?: string[]; sub: string; neutral: boolean; cells: Cell[] } {
   const { data, sel, cmp, boro } = ctx;
   const c = data.city;
   const R = data.ranked.length;

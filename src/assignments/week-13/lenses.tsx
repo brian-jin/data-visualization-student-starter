@@ -515,7 +515,7 @@ function YearTotals({ ctx }: { ctx: Ctx }) {
   const iNow = YEARS.indexOf(LATEST_YEAR);
   const diff = open.length ? open[iNow] - open[i22] : 0;
   const k = (v: number) => `${Math.round(v / 1000)}k`;
-  const slotAt = (e: React.PointerEvent<SVGSVGElement>) => Math.floor((localPoint(e, e.currentTarget, box.w, box.h).x - M.l) / slot);
+  const slotAt = (e: React.MouseEvent<SVGSVGElement>) => Math.floor((localPoint(e, e.currentTarget, box.w, box.h).x - M.l) / slot);
   const ticks = [0, 0.5, 1].map((t) => t * max);
   // Bottom to top: independents, then each chain tier, then the restaurants that are no longer listed
   const order = TIERS.map((t) => t.key);
